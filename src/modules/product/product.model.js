@@ -20,11 +20,11 @@ const {default: mongoose, Schema} = require("mongoose")
 // })
 
 const ProductSchema = new mongoose.Schema({
-    title: {type: String, required: true},
-    summary: {type: String, required: true},
-    description: {type: String, required: true},
+    title: {type: String, required: true, trim: true},
+    summary: {type: String, required: true, trim: true},
+    description: {type: String, required: true, trim: true},
     tags: {type: [String], required: true},
-    category: {type: String,},
+    category: {type: Schema.Types.ObjectId, ref: 'Category'},
     price: {type: Number, required: true, default: 0},
     count: {type: Number},
     images: {type: [String], required: true},
@@ -38,6 +38,8 @@ const ProductSchema = new mongoose.Schema({
         colors: [],
         madeIn: "",
     }}
+}, {
+    timestamps: {createdAt: true, updatedAt: true}
 })
 ProductSchema.index({title : "text", summary : "text", description : "text"})
 
