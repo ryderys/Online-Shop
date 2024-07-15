@@ -9,9 +9,10 @@ class ProductController {
     }
     async addProduct(req, res, next){
         try {
-            const images = listOfImagesFromRequest(req?.file || [], req.body.filleUploadPath)
+            console.log(req.body);
+            const images = listOfImagesFromRequest(req?.file || [], req.body.fileUploadPath)
             const {title, summary, description, price, tags, count, category } = req.body;
-            const supplier = req.user._id;
+            const supplier = "507f191e810c19729de860ea";
             let features = setFeatures(req.body);
             const product = await ProductModel.create({
                 title,
@@ -33,7 +34,7 @@ class ProductController {
             })
 
         } catch (error) {
-            deleteFileInPublic(req.body.image)  
+            deleteFileInPublic(req?.body?.image)  
             next(error)
         }
     }

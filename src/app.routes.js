@@ -1,9 +1,7 @@
 const { AdminApiProductRouter } = require("./modules/product/products.routes")
 
-const router = require("express").Router()
+const mainRouter = require("express").Router()
 
-router.use("/products", AdminApiProductRouter)
+mainRouter.use("/products", AdminApiProductRouter)
 
-module.exports = {
-    AdminRoutes: router
-}
+module.exports = mainRouter

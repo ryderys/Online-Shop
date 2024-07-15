@@ -1,12 +1,16 @@
 const path = require("path")
 const fs = require("fs")
-function listOfImagesFromRequest(files, fileUploadPath){
-    if(files?.length > 0) {
-        return ((files.map(file => path.join(fileUploadPath, file.filename))).map(item => item.replace(/\\/g, "/")))
-    }else {
-        return []
+
+function listOfImagesFromRequest(files, fileUploadPath) {
+    if (files?.length > 0) {
+      return files.map((file) => {
+        const filePath = path.join(fileUploadPath, file.filename);
+        return filePath.replace(/\\/g, '/');
+      });
+    } else {
+      return [];
     }
-}
+  }
 
 function setFeatures(body) {
     const { colors, width, weight, height, length } = body;
