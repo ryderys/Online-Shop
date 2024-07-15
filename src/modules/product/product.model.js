@@ -39,6 +39,7 @@ const ProductSchema = new mongoose.Schema({
         madeIn: "",
     }}
 })
+ProductSchema.index({title : "text", summary : "text", description : "text"})
 
 module.exports = {
     ProductModel : mongoose.model("Product", ProductSchema)

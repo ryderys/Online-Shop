@@ -107,3 +107,20 @@
  *                      schema:
  *                          $ref: '#/definitions/publicDefinition'
  */
+
+/**
+ * @swagger
+ *  /products/all:
+ *  get:
+ *      summary: get all products
+ *      tags:
+ *          -   Product
+ *      parameters:
+ *          -   in: query
+ *              name: search
+ *              type: string
+ *              description: for searching in title, summary, description of the product
+ *      responses:
+ *          200:
+ *              description: success
+ */

@@ -39,6 +39,30 @@ class ProductController {
         }
     }
 
+    async getAllProducts(req, res, next){
+        try {
+            const search = req?.query?.search || ""
+            let products;
+            if(search){
+                products = await ProductModel.find({
+                    $text: {
+                        $search: new RegExp(search, "ig")
+                    }
+                })
+            } else {
+                products = await ProductModel.find({})
+            }
+            return res.status(StatusCodes.OK).json({
+                statusCode: StatusCodes.OK,
+                data: {
+                    products
+                }
+            })
+        } catch (error) {
+            next(error)
+        }
+    }
+
 }
 
 
