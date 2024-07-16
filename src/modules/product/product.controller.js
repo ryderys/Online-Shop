@@ -2,6 +2,7 @@ const autoBind = require("auto-bind");
 const {StatusCodes} = require("http-status-codes")
 const { listOfImagesFromRequest, setFeatures, deleteFileInPublic } = require("../../common/utils/functions");
 const { ProductModel } = require("./product.model");
+const { createProductSchema } = require("../../common/validations/product.validation");
 
 class ProductController {
     constructor(){
@@ -9,10 +10,10 @@ class ProductController {
     }
     async addProduct(req, res, next){
         try {
-            console.log(req.body);
             const images = listOfImagesFromRequest(req?.file || [], req.body.fileUploadPath)
-            const {title, summary, description, price, tags, count, category } = req.body;
-            const supplier = "507f191e810c19729de860ea";
+            const productBody = await createProductSchema.validateAsync(req.body)
+            const {title, summary, description, price, tags, count, category } = productBody;
+            const supplier = req.user._id;
             let features = setFeatures(req.body);
             const product = await ProductModel.create({
                 title,
@@ -37,6 +38,10 @@ class ProductController {
             deleteFileInPublic(req?.body?.image)  
             next(error)
         }
+    }
+
+    async editProductById(req, res, next){
+        
     }
 
     async getAllProducts(req, res, next){

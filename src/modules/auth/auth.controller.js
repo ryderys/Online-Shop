@@ -6,6 +6,7 @@ const {StatusCodes} = require("http-status-codes");
 const CookieNames = require("../../common/constants/cookie.enum");
 const NodeEnv = require("../../common/constants/env.enum");
 const autoBind = require("auto-bind");
+const { getOtpSchema, checkOtpSchema } = require("../../common/validations/auth.validation");
 
 class UserAuthController {
     constructor(){
@@ -14,6 +15,7 @@ class UserAuthController {
 async getOTP(req, res, next){
     
     try {
+        await getOtpSchema.validateAsync(req.body)
         const {mobile} = req.body;
         if(!mobile){
             throw new httpError.BadRequest("شماره موبایل ضروری است")
@@ -35,7 +37,7 @@ async getOTP(req, res, next){
         if(user.otp && user.otp.expiresIn > now){
             throw new httpError.BadRequest("کد شما هنوز منقضی نشده")
         }
-
+        
         user.otp = otp
         await user.save()
 
@@ -52,6 +54,7 @@ async getOTP(req, res, next){
 
 async checkOTP(req, res, next ){
     try {
+        await checkOtpSchema.validateAsync(req.body)
         const {mobile, code} = req.body;
         if(!mobile || !code){
             throw new httpError.BadRequest("شماره موبایل و کد ضروری است")
