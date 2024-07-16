@@ -17,6 +17,8 @@ const UserSchema = new mongoose.Schema({
     email: {type: String, lowercase: true, trim: true},
     password: {type: String},
     mobile: {type: String, required: true, unique: true},
+    verifiedMobile: {type: Boolean, default: false, required: true},
+    accessToken: {type: String},
     otp: {type: OTPSchema },
     basket: {type: BasketSchema },
     products: {type: [ Schema.Types.ObjectId], ref: 'Product', default: []}
