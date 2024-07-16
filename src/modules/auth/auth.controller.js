@@ -5,45 +5,68 @@ const jwt = require("jsonwebtoken")
 const {StatusCodes} = require("http-status-codes");
 const CookieNames = require("../../common/constants/cookie.enum");
 const NodeEnv = require("../../common/constants/env.enum");
+const autoBind = require("auto-bind");
 
 class UserAuthController {
+    constructor(){
+        autoBind(this)
+    }
 async getOTP(req, res, next){
+    
     try {
         const {mobile} = req.body;
+        if(!mobile){
+            throw new httpError.BadRequest("شماره موبایل ضروری است")
+        }
         const user = await UserModel.findOne({mobile})
         const now = new Date().getTime()
         const otp = {
             code: randomInt(10000, 99999),
-            expiresIn: now + (1000 * 60 * 2)
+            expiresIn: now + 1000 * 60 * 3
         }
         if(!user){
             const newUser = await UserModel.create({mobile, otp})
-            return newUser
+            return res.status(StatusCodes.CREATED).json({
+                message: "کد تایید برای شما ارسال شد",
+                data: newUser
+            })
+            
         }
         if(user.otp && user.otp.expiresIn > now){
-            throw new error(httpError.BadRequest("کد شما هنوز منقضی نشده"))
+            throw new httpError.BadRequest("کد شما هنوز منقضی نشده")
         }
+
         user.otp = otp
         await user.save()
+
         return res.status(StatusCodes.OK).json({
-            message: "کد ارسال شد"
+            message: "کد ارسال شد",
+            data: {
+                user
+            }
         })
     } catch (error) {
         next(error)
     }
 }
 
-async checkOTP(req, res, next, ){
+async checkOTP(req, res, next ){
     try {
         const {mobile, code} = req.body;
-        const user = await this.checkExistByMobile(mobile)
+        if(!mobile || !code){
+            throw new httpError.BadRequest("شماره موبایل و کد ضروری است")
+        }
+        const user = await UserModel.findOne({mobile})
+        if(!user){
+            throw new httpError.NotFound("کاربری با این شماره موبایل وجود ندارد")
+        }
         const now = new Date().getTime()
         if( user?.otp?.expiresIn < now) throw new httpError.Unauthorized( "کد شما منقضی شده")
         if( user?.otp?.code !== code ) throw new httpError.Unauthorized( "کد وارد شده اشتباه است")
         if(!user.verifiedMobile){
             user.verifiedMobile = true
         }
-        const accessToken = this.signToken({mobile, id: user._id})
+        const accessToken = await this.signToken({mobile, id: user._id})
         user.accessToken = accessToken
         await user.save()
         return res.cookie(CookieNames.AccessToken, accessToken, {
@@ -67,16 +90,10 @@ async logout(req, res, next){
     }
 }
 
-async checkExistByMobile(mobile){
-    const user = await UserModel.findOne({mobile})
-    if(!user){
-        throw new error(httpError.NotFound("کاربری با این شماره موبایل وجود ندارد"))
-    }
-        return user
-    }
 
-signToken(payload){
-    return jwt.sign(payload, "secret_key", {expiresIn: '4d'})
+
+async signToken(payload){
+    return jwt.sign(payload, "secret_key", { expiresIn: '4d' });
 }
 }
 
