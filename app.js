@@ -5,12 +5,14 @@ const swaggerSetup = require("./src/config/swagger.config")
 const path = require("path");
 const mainRouter = require("./src/app.routes");
 const { NotFoundHandler, AllExceptionHandler } = require("./src/common/utils/error.handler");
+const cookieParser = require("cookie-parser");
 
 dotenv.config()
 require("./src/config/database.config")
 
 app.use(express.json())
 app.use(express.urlencoded({extended: true}))
+app.use(cookieParser(process.env.COOKIE_SECRET_KEY))
 app.use(express.static(path.join(__dirname, "public")))
 
 

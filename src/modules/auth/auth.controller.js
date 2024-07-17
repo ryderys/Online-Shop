@@ -96,7 +96,7 @@ async logout(req, res, next){
 
 
 async signToken(payload){
-    return jwt.sign(payload, "secret_key", { expiresIn: '4d' });
+    return jwt.sign(payload, process.env.JWT_SECRET_KEY, { expiresIn: '4d' });
 }
 }
 

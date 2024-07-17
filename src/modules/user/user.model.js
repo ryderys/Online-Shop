@@ -18,7 +18,7 @@ const UserSchema = new mongoose.Schema({
     password: {type: String},
     mobile: {type: String, required: true, unique: true},
     verifiedMobile: {type: Boolean, default: false, required: true},
-    accessToken: {type: String},
+    accessToken: {type: String}, //should not be saved
     otp: {type: OTPSchema },
     basket: {type: BasketSchema },
     products: {type: [ Schema.Types.ObjectId], ref: 'Product', default: []}

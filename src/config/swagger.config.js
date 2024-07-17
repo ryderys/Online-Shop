@@ -10,10 +10,9 @@ const swaggerDocument = swaggerJsDoc({
         },
     },
    apis: [process.cwd() + "/src/modules/**/*.swagger.js"],
-   
-})
+   })
 
-const swagger = swaggerUi.setup(swaggerDocument, {})
+const swagger = swaggerUi.setup(swaggerDocument, {explorer: true})
 module.exports = (app) => {
     app.use("/swagger", swaggerUi.serve, swagger)
 }
