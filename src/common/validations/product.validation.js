@@ -1,6 +1,6 @@
 const joi = require("joi");
 const httpError = require("http-errors")
-const MongoIDPattern =  /^(?=[a-f\d]{24}$)(\d+[a-f]|[a-f]+\d)/i
+ const MongoIDPattern =  /^(?=[a-f\d]{24}$)(\d+[a-f]|[a-f]+\d)/i
 const createProductSchema = joi.object({
     title: joi.string().min(3).max(30).error(httpError.BadRequest("عنوان ارسال شده صحیح نمیباشد")),
     description: joi.string().error(httpError.BadRequest("متن ارسال شده صحیح نمیباشد")),

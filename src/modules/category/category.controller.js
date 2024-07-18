@@ -2,8 +2,9 @@ const autoBind = require("auto-bind");
 const httpError = require("http-errors")
 const {StatusCodes} = require("http-status-codes");
 const { CategoryModel } = require("./category.model");
-const { isValidObjectId, model, Types, Schema } = require("mongoose");
+const { isValidObjectId, Types ,Schema, Mongoose } = require("mongoose");
 const { default: slugify } = require("slugify");
+const { createCategorySchema } = require("../../common/validations/category.validation");
 
 class CategoryController{
     constructor(){
@@ -12,24 +13,27 @@ class CategoryController{
 
     async createCategory(req, res, next){
         try {
-            const {title, icon, slug: slugInput, parent} = req.body;
-            let parents = []
+            const validatedCategory = await createCategorySchema.validateAsync(req.body)
+            let {title, icon, slug, parent} = validatedCategory;
+         
 
             if(parent && isValidObjectId(parent)){
                 const existCategory = await this.checkExistCategoryById(parent)
                 parent = existCategory._id;
-                parents = [
-                    ... new Set(
+                validatedCategory.parents = [
+                    ...new Set(
                         ([existCategory._id.toString()].concat(
                             existCategory.parents.map(id => id.toString())
-                        )).map(id => new Schema.Types.ObjectId(id))
+                        )).map(id => new Types.ObjectId(id))
                     )
                 ]
             }
-
-            let slug = slugInput ? slugify(slugInput) : slugify(title)
-            await this.checkCategorySlugUniqueness(slug)
-            
+            if(validatedCategory?.slug){
+                slug = slugify(slug)
+                await this.checkCategorySlugUniqueness(slug)
+            }else {
+                slug = slugify(title)
+            }
             const category = await CategoryModel.create({title, icon, slug, parent})
             return res.status(StatusCodes.CREATED).json({
                 statusCode: StatusCodes.CREATED,
