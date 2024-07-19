@@ -4,7 +4,7 @@ const FeaturesSchema = new Schema({
     title: {type: String, required: true}, //rang
     key: {type: String, required: true}, //color
     type: {type: String, enum: ["number", "string", "array", "boolean"]}, //color
-    enum: {type: Array, default: []}, //color choosing
+    list: {type: Array, default: []}, //color choosing
     guid: {type: String, required: false}, //rahnama
     category: {type: Types.ObjectId, ref: "Category", required: true}
 })

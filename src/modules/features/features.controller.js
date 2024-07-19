@@ -13,7 +13,7 @@ class featuresController{
     async addFeature(req, res, next){
         try {
             const featureBody = await createFeatureSchema.validateAsync(req.body)
-            let {title, key, type, enum: list, guid, category} = featureBody;
+            let {title, key, type,  list, guid, category} = featureBody;
 
             category = await checkExistCategoryById(category)
             category = category._id;
@@ -24,8 +24,9 @@ class featuresController{
             
             if(list && typeof list === "string"){
                 list = list.split(",")
-            }else if (!Array.isArray(list)) list = []
-            const feature = await FeaturesModel.create({title, key , type,  list , guid, category})
+            }else if (!Array.isArray(list)) list = [];
+            
+            const feature = await FeaturesModel.create({title, key , type, list , guid, category})
             return res.status(StatusCodes.CREATED).json({
                 statusCode: StatusCodes.CREATED,
                 data: {

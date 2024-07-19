@@ -1,5 +1,6 @@
 const joi = require("joi")
 const MongoIDPattern =  /^(?=[a-f\d]{24}$)(\d+[a-f]|[a-f]+\d)/i
+const httpError = require("http-errors")
 
 const createFeatureSchema = joi.object({
     title: joi.string().required().messages({
@@ -12,14 +13,7 @@ const createFeatureSchema = joi.object({
         "any.only": "Type must be one of 'number', 'string', 'array', 'boolean'",
         "any.required": "Type is required",
     }),
-    enum: joi.when('type', {
-        is: 'array',
-        then: joi.array().items(joi.string()).required().messages({
-            "array.base": "Enum must be an array of strings",
-            "any.required": "Enum is required when type is 'array'",
-        }),
-        otherwise: joi.forbidden()
-    }),
+    list: joi.alternatives().try(joi.array(), joi.string()).error(httpError.BadRequest("list must be array or comma-separated string")),
     guid: joi.string().optional().messages({
         "string.empty": "GUID must be a string",
     }),

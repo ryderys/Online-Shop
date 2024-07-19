@@ -32,7 +32,7 @@
  *                          -   string
  *                          -   boolean
  *                          -   array
- *                  enum:
+ *                  list:
  *                      type: array
  *                      items:
  *                          type: string
@@ -54,7 +54,7 @@
  *                          -   string
  *                          -   boolean
  *                          -   array
- *                  enum:
+ *                  list:
  *                      type: array
  *                      items:
  *                          type: string
