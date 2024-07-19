@@ -81,10 +81,10 @@ class ProductController {
                 products = await ProductModel.find({
                     $text: {
                         $search: new RegExp(search, "ig")
-                    }
-                })
+                    }, 
+                }, {__v: 0}).populate("category")
             } else {
-                products = await ProductModel.find({})
+                products = await ProductModel.find({}, {__v: 0}).populate([{path: "category", select: {name: 1, slug: 1}}])
             }
             return res.status(StatusCodes.OK).json({
                 statusCode: StatusCodes.OK,
