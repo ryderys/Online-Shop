@@ -5,6 +5,8 @@ const { ProductModel } = require("./product.model");
 const httpError = require("http-errors")
 const { createProductSchema } = require("../../common/validations/product.validation");
 const ObjectIdValidator = require("../../common/validations/public.validations");
+const FeaturesModel = require("../features/features.model");
+const { CategoryModel } = require("../category/category.model");
 
 class ProductController {
     constructor(){
@@ -12,11 +14,14 @@ class ProductController {
     }
     async addProduct(req, res, next){
         try {
-            const images = listOfImagesFromRequest(req?.file || [], req.body.fileUploadPath)
+            const images = listOfImagesFromRequest(req?.files || [], req.body.fileUploadPath)
             const productBody = await createProductSchema.validateAsync(req.body)
-            const {title, summary, description, price, tags, count, category } = productBody;
+            let {title, summary, description, price, tags, count, category, features } = productBody;
             const supplier = req.user._id;
-            let features = setFeatures(req.body);
+
+            
+            const categoryFeatures = await this.getCategoryFeatures(category)
+            const mergedFeatures = {...this.convertFeaturesToObject(categoryFeatures), ...features}
             const product = await ProductModel.create({
                 title,
                 summary,
@@ -26,7 +31,7 @@ class ProductController {
                 count,
                 supplier,
                 images,
-                features,
+                features: mergedFeatures,
                 category
             })
             return res.status(StatusCodes.CREATED).json({
@@ -53,7 +58,7 @@ class ProductController {
                 updates.images = images
             }
             if(updates.features){
-                updates.features = setFeatures(updates.features)
+                updates.feature = this.convertFeaturesToObject(updates.features)
             }
 
             Object.assign(product, updates)
@@ -84,7 +89,7 @@ class ProductController {
                     }, 
                 }, {__v: 0}).populate("category")
             } else {
-                products = await ProductModel.find({}, {__v: 0}).populate([{path: "category", select: {name: 1, slug: 1}}])
+                products = await ProductModel.find({}, {__v: 0}).populate([{path: "category"}])
             }
             return res.status(StatusCodes.OK).json({
                 statusCode: StatusCodes.OK,
@@ -136,6 +141,17 @@ class ProductController {
         const product = await ProductModel.findById(id)
         if(!product) throw new httpError.NotFound("محصولی یافت نشد")
         return product
+    }
+
+    async getCategoryFeatures(categoryId){
+        const features = await FeaturesModel.find({category: categoryId})
+        return features
+    }
+    convertFeaturesToObject(features) {
+        return features.reduce((obj, feature) => {
+            obj[feature.key] = feature;
+            return obj;
+        }, {});
     }
 
 }

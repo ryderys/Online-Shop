@@ -4,6 +4,7 @@ const { default: slugify } = require("slugify");
 const httpError = require("http-errors")
 const FeaturesModel = require("./features.model");
 const { StatusCodes } = require("http-status-codes");
+const { createFeatureSchema } = require("../../common/validations/features.validation");
 
 class featuresController{
     constructor() {
@@ -11,11 +12,16 @@ class featuresController{
     }
     async addFeature(req, res, next){
         try {
-            let {title, key, type, enum: list, guid, category} = req.body;
+            const featureBody = await createFeatureSchema.validateAsync(req.body)
+            let {title, key, type, enum: list, guid, category} = featureBody;
+
             category = await checkExistCategoryById(category)
             category = category._id;
+
             key = slugify(key, {trim: true, replacement: "_", lower: true})
+
             await this.alreadyExistByCategoryAndKey(key, category)
+            
             if(list && typeof list === "string"){
                 list = list.split(",")
             }else if (!Array.isArray(list)) list = []
