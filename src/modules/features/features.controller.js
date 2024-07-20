@@ -38,9 +38,16 @@ class featuresController{
             next(error)
         }
     }
+
     async findAllFeatures(req, res, next){
        try {
-        const features = await FeaturesModel.find({}, {__v: 0}, {sort: {_id: -1}}).populate([{path: "category", select: {name: 1, slug: 1}}])
+        let features = await FeaturesModel.find({}, {__v: 0}, {sort: {_id: -1}}).populate({path: "category", select: "name slug"}).lean()
+        features = features.map(features => {
+            if (features.category){
+                delete features.category.children
+            }
+            return features
+        })
         return res.status(StatusCodes.OK).json({
             statusCode: StatusCodes.OK,
             data: {
@@ -51,6 +58,45 @@ class featuresController{
             next(error)
        }
 
+    }
+
+    async findFeatureByCategoryId(req, res, next){
+        const {categoryId} = req.params
+        const feature = await FeaturesModel.find({category: categoryId},{__v: 0}).populate({path: "category", select: "name slug"})
+        return res.status(StatusCodes.OK).json({
+            statusCode: StatusCodes.OK,
+            data: {
+                feature
+            }
+        })
+    }
+
+    async findByCategorySlug(slug){
+        
+    }
+    
+    async removeFeatureById(req, res, next){
+        try {
+            const {id} = req.params;
+            await this.checkExistById(id)
+            await FeaturesModel.deleteOne({_id: id})
+            return res.status(StatusCodes.OK).json({
+                statusCode: StatusCodes.OK,
+                data: {
+                    message: "feature deleted successfully"
+                }
+            })
+        } catch (error) {
+            next(error)
+        }
+    }
+
+
+
+    async checkExistById(id){
+        const features = await FeaturesModel.findById(id)
+        if(!features) throw new httpError.NotFound("option not found")
+        return features
     }
 
     async alreadyExistByCategoryAndKey(key, category, exceptionId = null){

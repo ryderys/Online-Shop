@@ -9,7 +9,14 @@ const createProductSchema = joi.object({
     category: joi.string().error(httpError.BadRequest("دسته بندی صحیح نمیباشد")),
     price: joi.number().error(httpError.BadRequest("قیمت وارد شده صحیح نمیباشد")),
     count: joi.number().error(httpError.BadRequest("تعداد وارد شده صحیح نمیباشد")),
-    features: joi.optional(),
+    features: joi.object().pattern(
+        joi.string(),
+        joi.alternatives().try(
+            joi.string(),
+            joi.number(),
+            joi.boolean(),
+            joi.array().items(joi.string())
+        )).error(httpError.BadRequest("features must be object")),
     images: joi.string().regex(/(\.png|\.jpg|\.webp|\.jpeg)$/).error(httpError.BadRequest("فرمت تصویر ارسال شده صحیح نمیباشد")),
     fileUploadPath: joi.allow()
 })

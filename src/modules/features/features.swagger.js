@@ -91,3 +91,38 @@
  *          200:
  *              description: success
  */
+
+/**
+ * @swagger
+ * /feature/by-category/{categoryId}:
+ *  get:
+ *      summary: get all features of a category
+ *      tags:
+ *          -   Feature
+ *      parameters:
+ *          -   in: path
+ *              name: categoryId
+ *              type: string
+ *      responses:
+ *          200:
+ *              description: success
+ *      
+ */
+
+/**
+ * @swagger
+ * /feature/{id}:
+ *  delete:
+ *      summary: delete feature by id
+ *      tags:
+ *          -   Feature
+ *      parameters:
+ *          -   in: path
+ *              name: id
+ *              type: string
+ *      responses:
+ *          200:
+ *              description: success
+ *      
+ */
+

@@ -24,17 +24,6 @@
  * @swagger
  *  components:
  *      schemas:
- *          Color:
- *              type: string
- *              enum:
- *                  - black
- *                  - white
- *                  - gray
- *                  - red
- *                  - blue
- *                  - green
- *                  - orange
- *                  - purple
  *          addProduct:
  *              type: object
  *              required:
@@ -103,20 +92,6 @@
  *                      items:
  *                          type: string
  *                          format: binary
- *                  height:
- *                      type: string
- *                      description: the height of product
- *                      example: 0
- *                  width:
- *                      type: string
- *                      description: the width of product
- *                      example: 0
- *                  length:
- *                      type: string
- *                      description: the length of product packet
- *                      example: 0
- *                  colors:
- *                      $ref: '#/components/schemas/Color'
  */
 
 /**

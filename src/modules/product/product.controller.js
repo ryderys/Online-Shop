@@ -21,7 +21,10 @@ class ProductController {
 
             
             const categoryFeatures = await this.getCategoryFeatures(category)
-            const mergedFeatures = {...this.convertFeaturesToObject(categoryFeatures), ...features}
+            const categoryFeaturesObject = this.convertFeaturesToObject(categoryFeatures);
+
+            const validatedFeatures = this.validateFeatures(features, categoryFeaturesObject);
+
             const product = await ProductModel.create({
                 title,
                 summary,
@@ -31,7 +34,7 @@ class ProductController {
                 count,
                 supplier,
                 images,
-                features: mergedFeatures,
+                features: validatedFeatures,
                 category
             })
             return res.status(StatusCodes.CREATED).json({
@@ -42,7 +45,8 @@ class ProductController {
             })
 
         } catch (error) {
-            deleteFileInPublic(req?.body?.image)  
+            deleteFileInPublic(req?.body?.image) 
+            console.error(error) 
             next(error)
         }
     }
@@ -58,7 +62,9 @@ class ProductController {
                 updates.images = images
             }
             if(updates.features){
-                updates.feature = this.convertFeaturesToObject(updates.features)
+                const categoryFeatures = await this.getCategoryFeatures(product.category)
+                const categoryFeaturesObject = this.convertFeaturesToObject(categoryFeatures)
+                updates.features = this.validateFeatures(updates.features, categoryFeaturesObject)
             }
 
             Object.assign(product, updates)
@@ -72,6 +78,9 @@ class ProductController {
                 }
             })
         } catch (error) {
+            if (req?.files){
+                deleteFileInPublic(req.files.map(file => file.path))
+            }
             next(error)
         }
 
@@ -152,6 +161,17 @@ class ProductController {
             obj[feature.key] = feature;
             return obj;
         }, {});
+    }
+    validateFeatures(providedFeatures, categoryFeatures) {
+        const validatedFeatures = {};
+        for (const key in providedFeatures) {
+            if (categoryFeatures[key]) {
+                validatedFeatures[key] = providedFeatures[key];
+            } else {
+                throw new httpError.BadRequest(`Feature '${key}' is not valid for the selected category`);
+            }
+        }
+        return validatedFeatures;
     }
 
 }
