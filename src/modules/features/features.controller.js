@@ -5,6 +5,7 @@ const httpError = require("http-errors")
 const FeaturesModel = require("./features.model");
 const { StatusCodes } = require("http-status-codes");
 const { createFeatureSchema } = require("../../common/validations/features.validation");
+const { CategoryModel } = require("../category/category.model");
 
 class featuresController{
     constructor() {
@@ -39,15 +40,55 @@ class featuresController{
         }
     }
 
+
     async findAllFeatures(req, res, next){
        try {
-        let features = await FeaturesModel.find({}, {__v: 0}, {sort: {_id: -1}}).populate({path: "category", select: "name slug"}).lean()
-        features = features.map(features => {
-            if (features.category){
-                delete features.category.children
+        const features = await FeaturesModel.aggregate([
+            {
+                $lookup: {
+                    from: "categories",
+                    localField: "category",
+                    foreignField: "_id",
+                    as: "category"
+                }
+            },
+            {
+                $unwind: "$category"
+            },
+            {
+                $group: {
+                    _id: "$category._id",
+                    category: { $first: "$category"},
+                    features: {
+                        $push: {
+                            _id: "$_id",
+                            title: "$title",
+                            key: "$key",
+                            type: "$type",
+                            list: "$list",
+                            guid: "$guid",
+                        }
+                    }
+                }
+            },
+            {
+                $project: {
+                    "category.__v": 0,
+                    "category.parents": 0,
+                    "category._id": 0,
+                }
+            },
+            {
+                $project: {
+                    _id: 1,
+                    category: 1,
+                    features: 1
+                }
+            },
+            {
+                $sort: {"_id": -1}
             }
-            return features
-        })
+        ])
         return res.status(StatusCodes.OK).json({
             statusCode: StatusCodes.OK,
             data: {
@@ -71,8 +112,51 @@ class featuresController{
         })
     }
 
-    async findByCategorySlug(slug){
-        
+    async findByCategorySlug(req, res, next){
+        try {
+            const {slug} = req.params;
+            const category = await this.checkExistCategoryBySlug(slug)
+            const features = await FeaturesModel.aggregate([
+                {
+                    $lookup: {
+                        from: "categories",
+                        localField: "category",
+                        foreignField: "_id",
+                        as: "category"
+                    }
+                },
+                {
+                    $unwind: "$category"
+                },
+                {
+                    $addFields: {
+                        categorySlug: "$category.slug",
+                        categoryTitle: "$category.title",
+                        categoryIcon: "$category.icon",
+                    }
+                },
+                {
+                    $project: {
+                        category: 0,
+                        __v: 0
+                    }
+                },
+                {
+                    $match: {
+                        categorySlug: slug
+                    }
+                }
+
+            ])
+            return res.status(StatusCodes.OK).json({
+                statusCode: StatusCodes.OK,
+                data: {
+                    features
+                }
+            })
+        } catch (error) {
+            next(error)
+        }
     }
     
     async removeFeatureById(req, res, next){
@@ -97,6 +181,12 @@ class featuresController{
         const features = await FeaturesModel.findById(id)
         if(!features) throw new httpError.NotFound("option not found")
         return features
+    }
+
+    async checkExistCategoryBySlug(slug){
+        const category = await CategoryModel.findOne({slug})
+        if(!category) throw new httpError.NotFound("category not found")
+        return category
     }
 
     async alreadyExistByCategoryAndKey(key, category, exceptionId = null){

@@ -7,7 +7,7 @@ const createCategorySchema = joi.object({
     icon: joi.string().error(httpError.BadRequest("تصویر دسته بندی صحیح نمیباشد")),
     title: joi.string().min(3).max(30).error(httpError.BadRequest("نام دسته بندی صحیح نمیباشد")),
     parent: joi.string().optional().pattern(MongoIDPattern).error(httpError.BadRequest("شناسه ارسال شده صحیح نمیباشد")),
-    parents: joi.string().pattern(MongoIDPattern).error(httpError.BadRequest("شناسه ارسال شده صحیح نمیباشد"))
+    parents: joi.string().optional().pattern(MongoIDPattern).error(httpError.BadRequest("شناسه ارسال شده صحیح نمیباشد"))
 
 })
 

@@ -108,6 +108,22 @@
  *              description: success
  *      
  */
+/**
+ * @swagger
+ * /feature/by-category-slug/{slug}:
+ *  get:
+ *      summary: find feature by category slug
+ *      tags:
+ *          -   Feature
+ *      parameters:
+ *          -   in: path
+ *              name: slug
+ *              type: string
+ *      responses:
+ *          200:
+ *              description: success
+ *      
+ */
 
 /**
  * @swagger

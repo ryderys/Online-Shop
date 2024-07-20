@@ -5,6 +5,7 @@ const { CategoryModel } = require("./category.model");
 const { isValidObjectId, Types ,Schema, Mongoose } = require("mongoose");
 const { default: slugify } = require("slugify");
 const { createCategorySchema } = require("../../common/validations/category.validation");
+const FeaturesModel = require("../features/features.model");
 
 class CategoryController{
     constructor(){
@@ -15,12 +16,12 @@ class CategoryController{
         try {
             const validatedCategory = await createCategorySchema.validateAsync(req.body)
             let {title, icon, slug, parent} = validatedCategory;
-         
+            let parents
 
             if(parent && isValidObjectId(parent)){
                 const existCategory = await this.checkExistCategoryById(parent)
                 parent = existCategory._id;
-                validatedCategory.parents = [
+                parents = [
                     ...new Set(
                         ([existCategory._id.toString()].concat(
                             existCategory.parents.map(id => id.toString())
@@ -34,7 +35,7 @@ class CategoryController{
             }else {
                 slug = slugify(title)
             }
-            const category = await CategoryModel.create({title, icon, slug, parent})
+            const category = await CategoryModel.create({title, icon, slug, parent, parents})
             return res.status(StatusCodes.CREATED).json({
                 statusCode: StatusCodes.CREATED,
                 data: {
@@ -70,8 +71,7 @@ class CategoryController{
                 throw new httpError.BadRequest("شناسه دسته بندی نامعتبر است");
             }
             await this.checkExistCategoryById(id)
-            await CategoryModel.deleteMany({parent: id})
-            await CategoryModel.findByIdAndDelete(id)
+            await this.deleteCategoryAndChildren(id)
             return res.status(StatusCodes.OK).json({
                 statusCode: StatusCodes.OK,
                 data: {
@@ -80,6 +80,18 @@ class CategoryController{
             })
         } catch (error) {
             next(error)
+        }
+    }
+
+    async deleteCategoryAndChildren(categoryId){
+        const category = await this.checkExistCategoryById(categoryId)
+        if(category){
+            const subCategories = await CategoryModel.find({parent: categoryId})
+            for (const subCategory of subCategories) {
+                await this.deleteCategoryAndChildren(subCategory._id)
+            }
+            await FeaturesModel.deleteMany({category: categoryId})
+            await CategoryModel.deleteOne({_id: categoryId})
         }
     }
 
