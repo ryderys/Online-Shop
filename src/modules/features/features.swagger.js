@@ -82,6 +82,31 @@
 
 /**
  * @swagger
+ * /feature/{id}:
+ *  put:
+ *      summary: update feature for category
+ *      tags:
+ *          -   Feature
+ *      parameters:
+ *          -   in: path
+ *              name: id
+ *              type: string
+ *              required: true
+ *      requestBody:
+ *          content:
+ *              application/x-www-form-urlencoded:
+ *                  schema:
+ *                      $ref: '#/components/schemas/UpdateFeature'
+ *              application/json:
+ *                  schema:
+ *                      $ref: '#/components/schemas/UpdateFeature'
+ *      responses:
+ *          201:
+ *              description: created
+ */
+
+/**
+ * @swagger
  * /feature:
  *  get:
  *      summary: get all features
@@ -141,4 +166,6 @@
  *              description: success
  *      
  */
+
+
 

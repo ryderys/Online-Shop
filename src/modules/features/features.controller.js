@@ -4,8 +4,9 @@ const { default: slugify } = require("slugify");
 const httpError = require("http-errors")
 const FeaturesModel = require("./features.model");
 const { StatusCodes } = require("http-status-codes");
-const { createFeatureSchema } = require("../../common/validations/features.validation");
+const { createFeatureSchema, updateFeatureSchema } = require("../../common/validations/features.validation");
 const { CategoryModel } = require("../category/category.model");
+const { default: mongoose } = require("mongoose");
 
 class featuresController{
     constructor() {
@@ -32,6 +33,55 @@ class featuresController{
                 statusCode: StatusCodes.CREATED,
                 data: {
                     message: "feature created successfully"
+                }
+            })
+        } catch (error) {
+            console.error(error)
+            next(error)
+        }
+    }
+
+    async updateFeature(req, res, next){
+        try {
+            const {id} = req.params
+            if(!mongoose.Types.ObjectId.isValid(id)){
+                throw new httpError.BadRequest("invalid id format")
+            }
+
+            const featureBody = await updateFeatureSchema.validateAsync(req.body)
+            let {title, key, type, list, guid, category} = featureBody
+
+            const existingFeature = await this.checkExistById(id)
+
+            if(category){
+                category = await checkExistCategoryById(category)
+                category = category._id;
+            }else {
+                category = existingFeature.category
+            }
+
+            if(key){
+                key = slugify(key, {trim: true, replacement: "_", lower: true})
+                await this.alreadyExistByCategoryAndKey(key, category, id)
+            }
+
+            if(list && typeof list === "string"){
+                list = list.split(',')
+            }else if(!Array.isArray(list)){
+                list = []
+            }
+
+            const updatedData = {title, key, type, list, guid, category}
+            Object.keys(updatedData).forEach(key => updatedData[key] === undefined && delete updatedData[key])
+
+            const updatedFeature = await FeaturesModel.findByIdAndUpdate(id, updatedData,
+                {new: true}
+            )
+            return res.status(StatusCodes.OK).json({
+                statusCode: StatusCodes.OK,
+                data: {
+                    message: "feature updated successfully",
+                    feature: updatedFeature
                 }
             })
         } catch (error) {
