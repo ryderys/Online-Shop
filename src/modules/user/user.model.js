@@ -8,9 +8,7 @@ const OTPSchema = new Schema({
     code: {type: String, required: false, default: undefined},
     expiresIn: {type: Number, required: false, default: 0},
 })
-const BasketSchema = new mongoose.Schema({
-    products: {type: [ProductSchema], default: []},
-})
+
 const UserSchema = new mongoose.Schema({
     fullName: {type: String, trim: true},
     username: {type: String, lowercase: true, trim: true},
@@ -20,7 +18,8 @@ const UserSchema = new mongoose.Schema({
     verifiedMobile: {type: Boolean, default: false, required: true},
     accessToken: {type: String}, //should not be saved
     otp: {type: OTPSchema },
-    basket: {type: BasketSchema },
+    cart: {type: Schema.Types.ObjectId, ref: "Cart" },
+    savedItems: {type: Schema.Types.ObjectId, ref: "SavedItems" },
     products: {type: [ Schema.Types.ObjectId], ref: 'Product', default: []}
 }, {
     toJSON: {

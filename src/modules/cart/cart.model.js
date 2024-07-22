@@ -7,7 +7,8 @@ const cartItemSchema = new mongoose.Schema({
 })
 const CartSchema = new mongoose.Schema({
   userId : {type: mongoose.Schema.Types.ObjectId, ref: "User", required: true},
-  items: [cartItemSchema]
+  items: [cartItemSchema],
+  expiresAt: {type: Date, default: Date.now() + 30 * 60 * 1000} // 30 minutes
 
 })
 
