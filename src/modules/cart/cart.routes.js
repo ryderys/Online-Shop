@@ -1,11 +1,13 @@
+const Authorization = require("../../common/guard/authorization.guard")
 const cartController = require("./cart.controller")
 
 const router = require("express").Router()
 
-router.post("/add", cartController.addItemToCart),
-router.get("/", cartController.getCart),
-router.put("/update", cartController.updateItemQuantity)
-router.delete("/remove/:productId", cartController.removeItemFromCart)
+router.post("/add", Authorization,cartController.addItemToCart),
+router.get("/",Authorization, cartController.getCart),
+router.put("/update",Authorization, cartController.updateItemQuantity)
+router.post("/clear-cart",Authorization, cartController.clearCart)
+router.delete("/remove/:productId",Authorization, cartController.removeItemFromCart)
 
 module.exports = {
     CartRouter : router

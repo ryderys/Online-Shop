@@ -1,9 +1,6 @@
 const { default: mongoose, Schema, Types } = require("mongoose");
 
-const ProductSchema = new mongoose.Schema({
-    productID: {type: Schema.Types.ObjectId, ref: "Product"},
-    count: {type: Number, default: 1}
-})
+
 const OTPSchema = new Schema({
     code: {type: String, required: false, default: undefined},
     expiresIn: {type: Number, required: false, default: 0},

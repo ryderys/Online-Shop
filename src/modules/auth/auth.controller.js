@@ -7,6 +7,8 @@ const CookieNames = require("../../common/constants/cookie.enum");
 const NodeEnv = require("../../common/constants/env.enum");
 const autoBind = require("auto-bind");
 const { getOtpSchema, checkOtpSchema } = require("../../common/validations/auth.validation");
+const CartModel = require("../cart/cart.model");
+const { savedItemsModel } = require("../savedItems/savedItem.model");
 
 class UserAuthController {
     constructor(){
@@ -16,18 +18,34 @@ async getOTP(req, res, next){
     
     try {
         await getOtpSchema.validateAsync(req.body)
+
         const {mobile} = req.body;
         if(!mobile){
             throw new httpError.BadRequest("شماره موبایل ضروری است")
         }
+        
         const user = await UserModel.findOne({mobile})
         const now = new Date().getTime()
         const otp = {
             code: randomInt(10000, 99999),
             expiresIn: now + 1000 * 60 * 3
         }
+
         if(!user){
             const newUser = await UserModel.create({mobile, otp})
+            //creating an empty cart and saved items list for the new user
+            const cart = new CartModel({userId: newUser._id, items: []})
+            const savedItems = new savedItemsModel({userId: newUser._id, items: []})
+            //save the cart and saved items
+            await cart.save()
+            await savedItems.save()
+            // linking the cart and saved items to the new user
+
+            newUser.cart = cart._id
+            newUser.savedItems = savedItems._id;
+            //saving the new user
+            await newUser.save()
+            
             return res.status(StatusCodes.CREATED).json({
                 message: "کد تایید برای شما ارسال شد",
                 data: newUser
