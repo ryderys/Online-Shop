@@ -17,7 +17,7 @@ const createProductSchema = joi.object({
             joi.boolean(),
             joi.array().items(joi.string())
         )).error(httpError.BadRequest("features must be object")),
-    images: joi.string().regex(/(\.png|\.jpg|\.webp|\.jpeg)$/).error(httpError.BadRequest("فرمت تصویر ارسال شده صحیح نمیباشد")),
+    filename: joi.string().regex(/(\.png|\.jpg|\.webp|\.jpeg)$/).error(httpError.BadRequest("فرمت تصویر ارسال شده صحیح نمیباشد")),
     fileUploadPath: joi.allow()
 })
 

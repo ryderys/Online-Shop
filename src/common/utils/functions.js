@@ -2,15 +2,24 @@ const path = require("path")
 const fs = require("fs")
 
 function listOfImagesFromRequest(files, fileUploadPath) {
-    if (files?.length > 0) {
-      return files.map((file) => {
-        const filePath = path.join(fileUploadPath, file.filename);
-        return filePath.replace(/\\/g, '/');
-      });
-    } else {
-      return [];
-    }
+  if (!Array.isArray(files)) {
+      throw new TypeError('Expected an array of files');
   }
+  
+
+  if (files.length > 0) {
+      return files.map((file) => {
+          if (!file || !file.filename) {
+              console.error('Invalid file object:', file); // Debugging log
+              throw new Error('File object is missing filename property');
+          }
+          const filePath = path.join(fileUploadPath, file.filename);
+          return filePath.replace(/\\/g, '/');
+      });
+  } else {
+      return [];
+  }
+}
 
 function setFeatures(body) {
     const { colors, width, weight, height, length } = body;
@@ -28,10 +37,16 @@ function setFeatures(body) {
 }
 
 function deleteFileInPublic(fileAddress) {
-    if (fileAddress) {
-        const pathFile = path.join(__dirname, "..", "..", "public", fileAddress)
-        if (fs.existsSync(pathFile)) fs.unlinkSync(pathFile)
-    }
+  const normalizedPath = path.normalize(fileAddress)
+  const pathFile = path.join(__dirname, "..", "..", "public", normalizedPath);
+  if (fs.existsSync(pathFile)) {
+      try {
+          fs.unlinkSync(pathFile);
+      } catch (error) {
+          console.error(`Failed to delete file: ${pathFile}`, error);
+          // Optionally rethrow the error or handle it as needed
+      }
+  }
 }
 const removePropertyInObject = (target = {}, properties = []) => {
   // Check if target is a valid object

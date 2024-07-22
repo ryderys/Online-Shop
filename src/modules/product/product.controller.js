@@ -14,7 +14,9 @@ class ProductController {
     }
     async addProduct(req, res, next){
         try {
-            const images = listOfImagesFromRequest(req?.files || [], req.body.fileUploadPath)
+        
+            const images = req?.files?.map(image => image?.path?.slice(7));
+
             const productBody = await createProductSchema.validateAsync(req.body)
             let {title, summary, description, price, tags, count, category, features } = productBody;
             const supplier = req.user._id;
@@ -22,7 +24,6 @@ class ProductController {
             
             const categoryFeatures = await this.getCategoryFeatures(category)
             const categoryFeaturesObject = this.convertFeaturesToObject(categoryFeatures);
-
             const validatedFeatures = this.validateFeatures(features, categoryFeaturesObject);
 
             const product = await ProductModel.create({
@@ -45,7 +46,11 @@ class ProductController {
             })
 
         } catch (error) {
-            deleteFileInPublic(req?.body?.image) 
+            if(req?.files){
+                req.files.forEach(file  => {
+                    deleteFileInPublic(file.path.slice(7)) 
+                })
+            }
             console.error(error) 
             next(error)
         }
@@ -57,10 +62,19 @@ class ProductController {
             const product = await this.findProductById(id)
             const updates = req.body;
 
-            const images = listOfImagesFromRequest(req?.file || [], updates.fileUploadPath)
-            if(images.length > 0){
-                updates.images = images
-            }
+            // If new images are uploaded, map their paths and delete old images
+            if (req?.files?.length > 0) {
+                const newImages = req.files.map(image => image.path.slice(7));
+            
+            // Delete old images
+                if (product.images && product.images.length > 0) {
+                    product.images.forEach(image => {
+                        deleteFileInPublic(image);
+                    });
+                }
+                updates.images = newImages;
+        }
+        
             if(updates.features){
                 const categoryFeatures = await this.getCategoryFeatures(product.category)
                 const categoryFeaturesObject = this.convertFeaturesToObject(categoryFeatures)
@@ -79,7 +93,9 @@ class ProductController {
             })
         } catch (error) {
             if (req?.files){
-                deleteFileInPublic(req.files.map(file => file.path))
+                req.files.forEach(file  => {
+                    deleteFileInPublic(file.path.slice(7)) 
+                })
             }
             next(error)
         }
@@ -89,17 +105,62 @@ class ProductController {
 
     async getAllProducts(req, res, next){
         try {
-            const search = req?.query?.search || ""
-            let products;
+            const search = req?.query?.search?.trim() || ""
+            let matchStage = {}
+
             if(search){
-                products = await ProductModel.find({
-                    $text: {
-                        $search: new RegExp(search, "ig")
-                    }, 
-                }, {__v: 0}).populate("category")
-            } else {
-                products = await ProductModel.find({}, {__v: 0}).populate([{path: "category"}])
-            }
+                matchStage = {
+                    $text: { $search: search}
+                }
+             } 
+
+            const products = await ProductModel.aggregate([
+                { $match: matchStage},
+                {
+                    $lookup: {
+                        from: "categories",
+                        localField: "category",
+                        foreignField: "_id",
+                        as: "category"
+                    }
+                },
+                {$unwind: "$category"},
+                {
+                    $addFields: {
+                        likesCount: { $size: "$likes"},
+                        commentsCount: { $size: "$comments"},
+                    }
+                },
+                {
+                    $project: {
+                        _id: 0,
+                    id: "$_id",
+                    title: 1,
+                    summary: 1,
+                    description: 1,
+                    price: 1,
+                    count: 1,
+                    images: 1,
+                    tags: 1,
+                    features: 1,
+                    likesCount: 1,
+                    commentsCount: 1,
+                    supplier: 1,
+                    category: {
+                        id: "$category._id",
+                        title: "$category.title",
+                        slug: "$category.slug",
+                        icon: "$category.icon",
+                        parent: "$category.parent",
+                        children: "$category.children"
+                    },
+                    createdAt: 1,
+                    updatedAt: 1
+                }
+            },
+
+            ])
+
             return res.status(StatusCodes.OK).json({
                 statusCode: StatusCodes.OK,
                 data: {
