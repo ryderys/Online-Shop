@@ -1,18 +1,25 @@
+const Authorization = require("../../common/guard/authorization.guard")
 const savedItemsController = require("./savedItems.controller")
 
 
 const router = require("express").Router()
+// save an item for later
+router.post('/save',Authorization,savedItemsController.saveItemForLater)
 
-router.post('/save', savedItemsController.saveItemForLater)
+//move a saved item to cart
+router.post('/move-to-cart', Authorization, savedItemsController.moveSavedItemToCart)
 
-router.post('/move-to-cart', savedItemsController.moveSavedItemToCart)
+//view all saved item
+router.get('/', Authorization, savedItemsController.viewSavedItems)
 
-router.get('/', savedItemsController.viewSavedItems)
+//remove an item from saved items
+router.post('/remove', Authorization, savedItemsController.removeSavedItem)
 
-router.post('/remove', savedItemsController.removeSavedItem)
-router.post('/clear', savedItemsController.clearSavedItems)
+//clear all saved items
+router.delete('/clear', Authorization, savedItemsController.clearSavedItems)
 
-router.post('/is-saved', savedItemsController.isItemSaved)
+//check if an item is saved
+router.post('/is-saved', Authorization, savedItemsController.isItemSaved)
 
 
 module.exports = {

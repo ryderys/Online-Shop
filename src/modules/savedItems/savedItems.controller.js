@@ -15,26 +15,32 @@ class SavedItemsController{
             const {productId} = req.body;
             const userId = req.user._id;
 
+             // Find the user's cart
             const cart = await CartModel.findOne({userId});
             if(!cart){
                 throw new httpError.NotFound("cart not found")
             }
+
+             // Find the item in the cart
             const itemIndex = cart.items.findIndex(item => item.productId.equals(productId))
             if(itemIndex === -1){
                 throw new httpError.NotFound("item not found in your cart")
             }
 
-            const item = cart.items[itemIndex]
-            cart.items.splice(itemIndex, 1)
+            const item = cart.items[itemIndex] // Get the item from the cart
+            cart.items.splice(itemIndex, 1) // Remove the item from the cart
 
+            // Find or create the saved items list for the user
             let savedItems = await savedItemsModel.findOne({userId})
             if(!savedItems){
                 savedItems = new savedItemsModel({userId, items: []})
             }
+
+            // Add the item to the saved items list
             savedItems.items.push({productId: item.productId})
 
-            await cart.save()
-            await savedItems.save()
+            await cart.save() // Save the updated cart
+            await savedItems.save() // Save the updated saved items list
 
             return res.status(StatusCodes.OK).json({
                 statusCode: StatusCodes.OK,
@@ -160,8 +166,10 @@ class SavedItemsController{
             if (existingItem) {
                 existingItem.quantity += 1;
             } else {
-                cart.items.push({ productId: item.productId, quantity: 1 });
+                cart.items.push({ productId, quantity: 1 });
             } 
+
+            savedItems.items.splice(itemIndex, 1)
             await savedItems.save()
             await cart.save()
 
@@ -173,6 +181,7 @@ class SavedItemsController{
                 }
             })
         } catch (error) {
+            console.error(error)
             next(error)
         }
     }
