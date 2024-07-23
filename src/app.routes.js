@@ -2,6 +2,7 @@ const { AuthRouter } = require("./modules/auth/auth.routes")
 const { CartRouter } = require("./modules/cart/cart.routes")
 const { AdminApiCategoryRouter } = require("./modules/category/category.routes")
 const { AdminApiFeatureRouter } = require("./modules/features/features.routes")
+const { OrderRouter } = require("./modules/orders/orders.routes")
 const { AdminApiProductRouter } = require("./modules/product/products.routes")
 const { SavedItemsRouter } = require("./modules/savedItems/savedItems.routes")
 
@@ -14,5 +15,6 @@ mainRouter.use("/feature", AdminApiFeatureRouter)
 
 mainRouter.use("/cart", CartRouter)
 mainRouter.use("/saved-items", SavedItemsRouter)
+mainRouter.use("/orders", OrderRouter)
 
 module.exports = mainRouter
