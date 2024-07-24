@@ -17,7 +17,8 @@ const UserSchema = new mongoose.Schema({
     otp: {type: OTPSchema },
     cart: {type: Schema.Types.ObjectId, ref: "Cart" },
     savedItems: {type: Schema.Types.ObjectId, ref: "SavedItems" },
-    products: {type: [ Schema.Types.ObjectId], ref: 'Product', default: []}
+    products: {type: [ Schema.Types.ObjectId], ref: 'Product', default: []},
+    role: {type: String, enum: ['admin', 'user', 'quest'], default: 'quest'}
 }, {
     toJSON: {
         virtuals: true

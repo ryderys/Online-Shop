@@ -1,19 +1,20 @@
 const Authorization = require("../../common/guard/authorization.guard")
+const {checkPermission} = require("../../common/middleware/checkPermission")
 const ordersController = require("./orders.controller")
 
 const router = require("express").Router()
 
-router.post('/', Authorization, ordersController.createOrder)
+router.post('/', Authorization, checkPermission('order', 'create'), ordersController.createOrder)
 
-router.get('/',  Authorization, ordersController.getUserOrders)
+router.get('/',  Authorization,  checkPermission('order', 'read'),ordersController.getUserOrders)
 
-router.get('/history', Authorization,  ordersController.getUserOrderHistory)
+router.get('/history', Authorization, checkPermission('order', 'read'), ordersController.getUserOrderHistory)
 
-router.get('/:orderId/track',  Authorization, ordersController.trackOrder)
+router.get('/:orderId/track',  Authorization, checkPermission('order', 'read'),ordersController.trackOrder)
 
-router.put('/:orderId/cancel',  Authorization, ordersController.cancelOrder)
+router.put('/:orderId/cancel',  Authorization, checkPermission('order', 'updateOwn'), ordersController.cancelOrder)
 
-router.get('/:orderId',  Authorization, ordersController.getOrderById)
+router.get('/:orderId',  Authorization, checkPermission('order', 'read'), ordersController.getOrderById)
 
 // router.put('/:orderId/status', ordersController.updateOrderStatus)
 

@@ -1,5 +1,11 @@
 const autoBind = require("auto-bind");
 const OrderModel = require("../orders/orders.model");
+const roles = require("../RBAC/roles");
+const { StatusCodes } = require("http-status-codes");
+const permissions = require("../RBAC/permissions");
+const { logger } = require("../../common/utils/logger");
+
+
 
 class AdminOrderController{
     constructor(){
@@ -40,6 +46,40 @@ class AdminOrderController{
         } catch (error) {
             next(error)
         }
+    }
+
+    async addRole(req, res, next){
+        const {role, parentRole} = req.body;
+        roles[role] = [parentRole]
+        logger.info(`Role added: ${role}, Parent role: ${parentRole}`);
+        return res.status(StatusCodes.OK).json({
+            statusCode: StatusCodes.OK,
+            data: {
+                message: "Role added successfully"
+            }
+        })
+    }
+    async addPermission(req, res, next){
+        const {resource, role, action} = req.body;
+        permissions[resource][action].push(role)
+        logger.info(`Permission added: ${role} can ${action} ${resource}`)
+        return res.status(StatusCodes.OK).json({
+            statusCode: StatusCodes.OK,
+            data: {
+                message: "Permission added successfully"
+            }
+        })
+    }
+    async removePermission(req, res, next){
+        const {resource, role, action} = req.body;
+        permissions[resource][action] = permissions[resource][action].filter(r => r !== role)
+        logger.info(`Permission removed: ${role} can no longer ${action} ${resource}`)
+        return res.status(StatusCodes.OK).json({
+            statusCode: StatusCodes.OK,
+            data: {
+                message: "Permission removed successfully"
+            }
+        })
     }
 }
 
