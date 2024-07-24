@@ -3,7 +3,7 @@ const CartModel = require("../cart/cart.model");
 const httpError = require("http-errors");
 const OrderModel = require("./orders.model");
 const { StatusCodes } = require("http-status-codes");
-
+const { logger } = require("../../common/utils/logger");
 class OrderController{
     constructor() {
         autoBind(this)
@@ -37,7 +37,7 @@ class OrderController{
             //clearing the cart
             cart.items = []
             await cart.save()
-
+            logger.info(`Order created for user ${userId} with order ID ${order._id}`)
             return res.status(StatusCodes.CREATED).json({
                 statusCode: StatusCodes.CREATED,
                 data: {
@@ -45,6 +45,7 @@ class OrderController{
                 }
             })
         } catch (error) {
+            logger.error(`Error creating order: ${error.message}`);
             next(error)
         }
     }
@@ -111,11 +112,17 @@ class OrderController{
     async getUserOrderHistory(req, res, next){
         try {
             const userId = req.user._id;
-            const orders = await OrderModel.find({userId}).populate('items.productId')
+            const {page = 1, limit= 10} = req.query
+            const orders = await OrderModel.find({userId}).populate('items.productId').skip((page - 1) * limit).limit(+limit)
+            const totalOrders = await OrderModel.countDocuments({userId})
+
             return res.status(StatusCodes.OK).json({
                 statusCode: StatusCodes.OK,
                 data: {
-                    orders
+                    orders,
+                    totalOrders,
+                    currentPage: page,
+                    totalPages: Math.ceil(totalOrders / limit)
                 }
             })
         } catch (error) {
@@ -153,6 +160,7 @@ class OrderController{
 
             order.status = 'cancelled'
             await order.save()
+            logger.info(`Order ${orderId} cancelled by user ${userId}`);
             return res.status(StatusCodes.OK).json({
                 statusCode: StatusCodes.OK,
                 data: {

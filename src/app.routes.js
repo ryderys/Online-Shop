@@ -4,6 +4,7 @@ const { AdminApiCategoryRouter } = require("./modules/category/category.routes")
 const { AdminApiFeatureRouter } = require("./modules/features/features.routes")
 const { OrderRouter } = require("./modules/orders/orders.routes")
 const { AdminApiProductRouter } = require("./modules/product/products.routes")
+const { ReviewsRouter } = require("./modules/reviews/review.routes")
 const { SavedItemsRouter } = require("./modules/savedItems/savedItems.routes")
 
 const mainRouter = require("express").Router()
@@ -16,5 +17,6 @@ mainRouter.use("/feature", AdminApiFeatureRouter)
 mainRouter.use("/cart", CartRouter)
 mainRouter.use("/saved-items", SavedItemsRouter)
 mainRouter.use("/orders", OrderRouter)
+mainRouter.use("/review", ReviewsRouter)
 
 module.exports = mainRouter
