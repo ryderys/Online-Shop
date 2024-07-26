@@ -1,12 +1,13 @@
-const Authorization = require("../../common/guard/authorization.guard")
+const adminAuthMiddleware = require("../../common/guard/auth.guard")
 const { checkPermission } = require("../../common/middleware/checkPermission")
+const adminRateLimiter = require("../../common/middleware/rate-limit")
 const categoryController = require("./category.controller")
 
 const router = require("express").Router()
 
-router.post("/", Authorization, checkPermission('category', 'create'), categoryController.createCategory)
-router.get("/", Authorization, checkPermission('category', 'read'),categoryController.getAllCategory)
-router.delete("/:id", Authorization, checkPermission('category', 'delete'), categoryController.deleteCategoryById)
+router.post("/",  adminAuthMiddleware, checkPermission('category', 'create'), adminRateLimiter, categoryController.createCategory)
+router.get("/", adminAuthMiddleware, checkPermission('category', 'read'), adminRateLimiter,categoryController.getAllCategory)
+router.delete("/:id", adminAuthMiddleware, checkPermission('category', 'delete'),adminRateLimiter ,categoryController.deleteCategoryById)
 
 module.exports = {
     AdminApiCategoryRouter: router
