@@ -4,6 +4,8 @@ const httpError = require("http-errors");
 const OrderModel = require("./orders.model");
 const { StatusCodes } = require("http-status-codes");
 const { logger } = require("../../common/utils/logger");
+const { UserModel } = require("../user/user.model");
+const PendingOrderModel = require("./pending-order.model");
 class OrderController{
     constructor() {
         autoBind(this)
@@ -12,7 +14,39 @@ class OrderController{
     async createOrder(req, res, next){
         try {
             const userId = req.user._id;
-            // const userEmail = req.user.email;
+            
+            const user = await UserModel.findById(userId)
+
+            if(!user.fullName || !user.email ){
+
+                const cart = await CartModel.findOne({userId}).populate('items.productId')
+                if(!cart || cart.items.length === 0){
+                    throw new httpError.BadRequest('your cart is empty')
+                }
+
+                const totalAmount = cart.items.reduce((sum, item) => sum + (item.productId.price * item.quantity), 0)
+
+
+                const pendingOrder = await PendingOrderModel.create({
+                    userId,
+                    items: cart.items.map(item => ({
+                        productId: item.productId._id,
+                        quantity: item.quantity, 
+                        price: item.productId.price
+                    })),
+                    totalAmount
+                })
+
+                await pendingOrder.save();
+
+                return res.status(StatusCodes.BAD_REQUEST).json({
+                    statusCode: StatusCodes.BAD_REQUEST,
+                    data: {
+                        message: "Please complete your profile ",
+                        redirectTo: '/profile'
+                    }
+                })
+            }
 
             const cart = await CartModel.findOne({userId}).populate('items.productId')
             if(!cart || cart.items.length === 0){
@@ -171,6 +205,8 @@ class OrderController{
             next(error)
         }
     }
+
+    
 
 }
 

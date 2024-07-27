@@ -1,3 +1,4 @@
+const adminAuthMiddleware = require("../../common/guard/auth.guard")
 const Authorization = require("../../common/guard/authorization.guard")
 const { checkPermission } = require("../../common/middleware/checkPermission")
 const { stringToArray } = require("../../common/utils/functions")

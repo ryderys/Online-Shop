@@ -44,6 +44,7 @@ const permissions = Object.freeze({
     },
     users: {
         create: ['admin'],
+        readOwn: ['user'],
         read: ['admin'],
         update: ['admin'],
         updateOwn: ['user'], //users can update their own profile 

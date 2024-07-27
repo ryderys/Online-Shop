@@ -10,10 +10,9 @@ const UserSchema = new mongoose.Schema({
     fullName: {type: String, trim: true},
     username: {type: String, lowercase: true, trim: true},
     email: {type: String, lowercase: true, trim: true},
-    password: {type: String},
+    // password: {type: String},
     mobile: {type: String, required: true, unique: true},
     verifiedMobile: {type: Boolean, default: false, required: true},
-    accessToken: {type: String}, //should not be saved
     otp: {type: OTPSchema },
     cart: {type: Schema.Types.ObjectId, ref: "Cart" },
     savedItems: {type: Schema.Types.ObjectId, ref: "SavedItems" },

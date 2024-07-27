@@ -7,10 +7,12 @@ const { OrderRouter } = require("./modules/orders/orders.routes")
 const { AdminApiProductRouter } = require("./modules/product/products.routes")
 const { ReviewsRouter } = require("./modules/reviews/review.routes")
 const { SavedItemsRouter } = require("./modules/savedItems/savedItems.routes")
+const { UserRouter } = require("./modules/user/user.routes")
 
 const mainRouter = require("express").Router()
 
 mainRouter.use("/auth", AuthRouter)
+mainRouter.use("/user", UserRouter)
 mainRouter.use("/admin-panel", AdminPanelRouter)
 mainRouter.use("/products", AdminApiProductRouter)
 mainRouter.use("/category", AdminApiCategoryRouter)
