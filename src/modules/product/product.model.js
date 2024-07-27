@@ -11,7 +11,7 @@ const ProductSchema = new mongoose.Schema({
     price: {type: Number, required: true, default: 0},
     count: {type: Number},
     images: {type: [String], required: false, default: []},
-    likes: {type: [Schema.Types.ObjectId], ref: 'User', default: []},
+    // likes: {type: [Schema.Types.ObjectId], ref: 'User', default: []},
     supplier: {type: Schema.Types.ObjectId, ref: 'User', required: true},
     features: {type: Object, default: {}},
     averageRating: {type: Number, default: 0},

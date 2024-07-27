@@ -72,6 +72,19 @@
 
 /**
  * @swagger
+ * /auth/refresh-token:
+ *  post:
+ *      summary: check otp for login user
+ *      tags:
+ *          -   Authentication
+ *      responses:
+ *          200:
+ *              description: success
+ * 
+ */
+
+/**
+ * @swagger
  * /auth/logout:
  *  get:
  *      summary: logout user

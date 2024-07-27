@@ -4,6 +4,7 @@ const router = Router();
 
 router.post("/get-otp", UserAuthController.getOTP)
 router.post("/check-otp", UserAuthController.checkOTP)
+router.post("/refresh-token", UserAuthController.refreshAccessToken)
 router.post("/logout", UserAuthController.logout)
 
 module.exports = {

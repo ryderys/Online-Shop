@@ -14,13 +14,14 @@ class UserController{
     async getUserProfile(req, res, next){
         try {
             const user = req.user;
-            return res.status(StatusCodes).json({
+            return res.status(StatusCodes.OK).json({
                 statusCode: StatusCodes.OK,
                 data: {
                     user
                 }
             })
         } catch (error) {
+            logger.error(error)
             next(error)
         }
     }
@@ -36,6 +37,7 @@ class UserController{
             const pendingOrder = await PendingOrderModel.findOne({userId})
             if(pendingOrder){
                 const cart = await CartModel.findOne({userId}).populate('items.productId')
+
                 if(!cart || cart.items.length === 0){
                     throw new httpError.BadRequest('Your cart is empty')
                 }
@@ -63,8 +65,6 @@ class UserController{
                     }
                 })
             }
-
-
             return res.status(StatusCodes.OK).json({
                 statusCode: StatusCodes.OK,
                 data: {
@@ -73,6 +73,7 @@ class UserController{
         })
 
         } catch (error) {
+            logger.error(error)
             next(error)
         }
     }
@@ -89,6 +90,7 @@ class UserController{
                 }
             })
         } catch (error) {
+            logger.error(error)
             next(error)
         }
     }

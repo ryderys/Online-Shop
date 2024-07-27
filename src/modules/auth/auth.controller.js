@@ -9,63 +9,66 @@ const autoBind = require("auto-bind");
 const { getOtpSchema, checkOtpSchema } = require("../../common/validations/auth.validation");
 const CartModel = require("../cart/cart.model");
 const { savedItemsModel } = require("../savedItems/savedItem.model");
+const bcrypt = require("bcrypt");
+const { logger } = require("../../common/utils/logger");
+const { AuthMessages } = require("./auth.messages");
+
 
 class UserAuthController {
     constructor(){
         autoBind(this)
     }
 async getOTP(req, res, next){
-    
     try {
         await getOtpSchema.validateAsync(req.body)
-
         const {mobile} = req.body;
         if(!mobile){
-            throw new httpError.BadRequest("شماره موبایل ضروری است")
+            throw new httpError.BadRequest(AuthMessages.MobileRequired)
         }
         
         const user = await UserModel.findOne({mobile})
-        const now = new Date().getTime()
+        const now = Date.now()
         const otp = {
             code: randomInt(10000, 99999),
             expiresIn: now + 1000 * 60 * 3
         }
 
-        if(!user){
+        if(user){
+            if(user.otp && user.otp.expiresIn > now){
+                throw new httpError.BadRequest(AuthMessages.OTPNotExpired)
+            }
+            user.otp = otp
+            await user.save()
+        } else {
             const newUser = await UserModel.create({mobile, otp})
-            //creating an empty cart and saved items list for the new user
             const cart = new CartModel({userId: newUser._id, items: []})
             const savedItems = new savedItemsModel({userId: newUser._id, items: []})
-            //save the cart and saved items
             await cart.save()
             await savedItems.save()
-            // linking the cart and saved items to the new user
-
             newUser.cart = cart._id
             newUser.savedItems = savedItems._id;
-            //saving the new user
             await newUser.save()
             
             return res.status(StatusCodes.CREATED).json({
-                message: "کد تایید برای شما ارسال شد",
-                data: newUser
+                statusCode: StatusCodes.CREATED,
+                data: {
+                    message: AuthMessages.OTPSuccess,
+                    code: newUser.otp.code,
+                    mobile: newUser.mobile
+                }
             })
-            
-        }
-        if(user.otp && user.otp.expiresIn > now){
-            throw new httpError.BadRequest("کد شما هنوز منقضی نشده")
-        }
-        
-        user.otp = otp
-        await user.save()
 
+        }
         return res.status(StatusCodes.OK).json({
-            message: "کد ارسال شد",
+            statusCode: StatusCodes.OK,
             data: {
-                user
+                message: AuthMessages.OTPSuccess,
+                code: user.otp.code,
+                mobile: user.mobile,
             }
         })
     } catch (error) {
+        logger.error(error)
         next(error)
     }
 }
@@ -75,38 +78,91 @@ async checkOTP(req, res, next ){
         await checkOtpSchema.validateAsync(req.body)
         const {mobile, code} = req.body;
         if(!mobile || !code){
-            throw new httpError.BadRequest("شماره موبایل و کد ضروری است")
+            throw new httpError.BadRequest(AuthMessages.MobileAndCodeRequired)
         }
+
         const user = await UserModel.findOne({mobile})
-        if(!user){
-            throw new httpError.NotFound("کاربری با این شماره موبایل وجود ندارد")
-        }
-        const now = new Date().getTime()
-        if( user?.otp?.expiresIn < now) throw new httpError.Unauthorized( "کد شما منقضی شده")
-        if( user?.otp?.code !== code ) throw new httpError.Unauthorized( "کد وارد شده اشتباه است")
-        if(!user.verifiedMobile){
-            user.verifiedMobile = true
-        }
+        if(!user) throw new httpError.NotFound(AuthMessages.UserNotFound)
+
+        const now = Date.now()
+        if( user?.otp?.expiresIn < now) throw new httpError.Unauthorized(AuthMessages.OTPExpired)
+        if( user?.otp?.code !== code ) throw new httpError.Unauthorized( AuthMessages.InvalidOTP)
+
+        if(!user.verifiedMobile) user.verifiedMobile = true
+        
         const accessToken = await this.signToken({mobile, id: user._id})
+        const refreshToken = await this.signRefreshToken({mobile, id: user._id})
+
+        const hashedRefreshToken = await this.hashToken(refreshToken)
         user.accessToken = accessToken
+        user.refreshToken = hashedRefreshToken
         await user.save()
-        return res.cookie(CookieNames.AccessToken, accessToken, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === NodeEnv.Production
-        }).status(StatusCodes.OK).json({
-            message: "با موفقیت وارد حساب کاربری خود شدید"
+
+        this.setToken(res, accessToken, refreshToken)
+
+        return res.status(StatusCodes.OK).json({
+            statusCode: StatusCodes.OK,
+            data: {
+                message:AuthMessages.LoginSuccess ,
+                user
+            }
         })
     } catch (error) {
-      next(error)  
+        logger.error(error)
+        next(error)  
+    }
+}
+
+async refreshAccessToken(req, res, next){
+    try {
+        const refreshToken = req.cookies[CookieNames.RefreshToken]
+        if(!refreshToken) throw new httpError.Unauthorized(AuthMessages.LogIn)
+
+        const decoded = await this.verifyRefreshToken(refreshToken, process.env.JWT_REFRESH_SECRET_KEY)
+        if(!decoded) throw new httpError.Unauthorized(AuthMessages.LogIn)
+        
+        const user = await UserModel.findById(decoded.id)
+        if(!user) throw new httpError.Unauthorized(AuthMessages.UserNotFound)
+        
+        const isMatch = await this.compareRefreshToken(refreshToken, user.refreshToken)
+        if(!isMatch){
+             throw new httpError.Unauthorized(AuthMessages.RefreshFailed)
+        }
+
+        const accessToken = await this.signToken({mobile: decoded.mobile, id: decoded.id})
+        const newRefreshToken = await this.signRefreshToken({mobile: decoded.mobile, id: decoded.id})
+
+        const hashedNewRefreshToken = await this.hashToken(newRefreshToken)
+
+        user.refreshToken = hashedNewRefreshToken
+        await user.save()
+        this.setToken(res, accessToken, hashedNewRefreshToken)
+
+        return res.status(StatusCodes.OK).json({
+            statusCode: StatusCodes.OK,
+            data: {
+                message: AuthMessages.RefreshSuccess
+            }
+        })
+    } catch (error) {
+        logger.error(error)
+        next(error)
     }
 }
 
 async logout(req, res, next){
     try {
-        return res.clearCookie(CookieNames.AccessToken).status(StatusCodes.OK).json({
-            message: "با موفقیت خارج شدید"
+        const userId = req.user._id
+        if(!user) throw new httpError.BadRequest(AuthMessages.LogIn)
+        await UserModel.findByIdAndUpdate(userId, {refreshToken: null})
+        return res.clearCookie(CookieNames.AccessToken).clearCookie(CookieNames.RefreshToken).status(StatusCodes.OK).json({
+            statusCode: StatusCodes.OK,
+            data: {
+                message: AuthMessages.LogOutSuccess
+            }
         })
     } catch (error) {
+        logger.error(error)
         next(error)
     }
 }
@@ -114,8 +170,46 @@ async logout(req, res, next){
 
 
 async signToken(payload){
-    return jwt.sign(payload, process.env.JWT_SECRET_KEY, { expiresIn: '4d' });
+    return jwt.sign(payload, process.env.JWT_SECRET_KEY, { expiresIn: '15m' });
 }
+
+async signRefreshToken(payload){
+    const refreshToken = jwt.sign(payload, process.env.JWT_REFRESH_SECRET_KEY, { expiresIn: '5d' });
+    return refreshToken
+    // return crypto.createHash('sha256').update(refreshToken).digest('hex')
+}
+
+async hashToken(token){
+    const salt = bcrypt.genSaltSync(10)
+    return bcrypt.hashSync(token, salt)
+}
+
+async verifyRefreshToken(token, secret){
+    try {
+        return jwt.verify(token, secret)
+    } catch (error) {
+        return null
+    }
+}
+
+async compareRefreshToken (plainToken, hashedToken){
+    return await bcrypt.compareSync(plainToken, hashedToken)
+}
+
+setToken(res, accessToken, refreshToken){
+    return res.cookie(CookieNames.AccessToken, accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        samSite: "strict",
+        maxAge: 1000 * 60 *  15
+    }).cookie(CookieNames.RefreshToken, refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        samSite: "strict",
+        maxAge: 1000 * 60 * 60 * 24 * 7 //7 days
+    })
+}
+
 }
 
 module.exports = {
