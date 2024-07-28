@@ -1,6 +1,7 @@
 const { StatusCodes } = require("http-status-codes");
 const PendingOrderModel = require("../../modules/orders/pending-order.model");
 const OrderModel = require("../../modules/orders/orders.model");
+const { MiddlewaresMessages } = require("./middleware.messages");
 
 async function checkPendingOrder(req, res, next){
     try {
@@ -18,7 +19,7 @@ async function checkPendingOrder(req, res, next){
             return res.status(StatusCodes.CREATED).json({
                 statusCode: StatusCodes.CREATED,
                 data: {
-                    message: "Order created successfully",
+                    message: MiddlewaresMessages.OrderCreated,
                     order
                 }
             })

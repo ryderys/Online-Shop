@@ -1,14 +1,15 @@
 const joi = require("joi");
-const httpError = require("http-errors")
+const httpError = require("http-errors");
+const { ValidationMessages } = require("./validation.messages");
  const MongoIDPattern =  /^(?=[a-f\d]{24}$)(\d+[a-f]|[a-f]+\d)/i
 const createProductSchema = joi.object({
-    title: joi.string().min(3).max(30).error(httpError.BadRequest("عنوان ارسال شده صحیح نمیباشد")),
-    description: joi.string().error(httpError.BadRequest("متن ارسال شده صحیح نمیباشد")),
-    summary: joi.string().error(httpError.BadRequest("متن ارسال شده صحیح نمیباشد")),
-    tags: joi.array().min(0).max(10).error(httpError.BadRequest("برچسب ها نمیتواند بیشتر از 10 آیتم باشد")),
-    category: joi.string().error(httpError.BadRequest("دسته بندی صحیح نمیباشد")),
-    price: joi.number().error(httpError.BadRequest("قیمت وارد شده صحیح نمیباشد")),
-    count: joi.number().error(httpError.BadRequest("تعداد وارد شده صحیح نمیباشد")),
+    title: joi.string().min(3).max(30).error(httpError.BadRequest(ValidationMessages.InvalidTitle)),
+    description: joi.string().error(httpError.BadRequest(ValidationMessages.InvalidDescription)),
+    summary: joi.string().error(httpError.BadRequest(ValidationMessages.InvalidSummary)),
+    tags: joi.array().min(0).max(10).error(httpError.BadRequest(ValidationMessages.InvalidTag)),
+    category: joi.string().error(httpError.BadRequest(ValidationMessages.InvalidCategoryId)),
+    price: joi.number().error(httpError.BadRequest(ValidationMessages.InvalidPrice)),
+    count: joi.number().error(httpError.BadRequest(ValidationMessages.InvalidQuantity)),
     features: joi.object().pattern(
         joi.string(),
         joi.alternatives().try(
@@ -16,8 +17,8 @@ const createProductSchema = joi.object({
             joi.number(),
             joi.boolean(),
             joi.array().items(joi.string())
-        )).error(httpError.BadRequest("features must be object")),
-    filename: joi.string().regex(/(\.png|\.jpg|\.webp|\.jpeg)$/).error(httpError.BadRequest("فرمت تصویر ارسال شده صحیح نمیباشد")),
+        )).error(httpError.BadRequest(ValidationMessages.InvalidType)),
+    filename: joi.string().regex(/(\.png|\.jpg|\.webp|\.jpeg)$/).error(httpError.BadRequest(ValidationMessages.InvalidFilename)),
     fileUploadPath: joi.allow()
 })
 

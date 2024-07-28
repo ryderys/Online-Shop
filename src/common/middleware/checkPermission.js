@@ -1,6 +1,8 @@
 const permissions = require("../../modules/RBAC/permissions");
 const roles = require("../../modules/RBAC/roles")
-const httpError = require("http-errors")
+const httpError = require("http-errors");
+const { MiddlewaresMessages } = require("./middleware.messages");
+const { StatusCodes } = require("http-status-codes");
 
 
 
@@ -13,7 +15,7 @@ function checkPermission(resource, action) {
             }
             const resourcePermissions = permissions[resource]?.[action];
             if(!resourcePermissions){
-                throw new httpError.BadGateway("Forbidden: No permissions found for this resource and action")
+                throw new httpError.BadGateway(MiddlewaresMessages.Forbidden)
             }
             let hasPermission = false;
             let currentRole = userRole;
@@ -29,7 +31,12 @@ function checkPermission(resource, action) {
             if (hasPermission) {
                 next();
             } else {
-                res.status(403).json({ message: 'Forbidden' });
+                return res.status(StatusCodes.FORBIDDEN).json({
+                    statusCode: StatusCodes.FORBIDDEN,
+                    data: {
+                        message: MiddlewaresMessages.Forbidden
+                    }
+                     });
             }
         } catch (error) {
             next(error)   
@@ -43,7 +50,7 @@ function checkOwnership(Model, resource, action) {
             const userRole = req.user.role;
             const resourcePermissions = permissions[resource]?.[action]
             if(!resourcePermissions){
-                throw new httpError.BadGateway("Forbidden: No permissions found for this resource and action")
+                throw new httpError.BadGateway(MiddlewaresMessages.Forbidden)
             }
 
             let hasPermission = false;
@@ -67,11 +74,21 @@ function checkOwnership(Model, resource, action) {
                     if (resource && resource.userId.equals(req.user._id)) {
                         next();
                     } else {
-                        return res.status(403).json({ message: 'Forbidden' });
+                        return res.status(StatusCodes.FORBIDDEN).json({
+                            statusCode: StatusCodes.FORBIDDEN,
+                            data: {
+                                message: MiddlewaresMessages.Forbidden
+                            }
+                             });
                     }
                 
             } else {
-                return res.status(403).json({ message: 'Forbidden' });
+                return res.status(StatusCodes.FORBIDDEN).json({
+                    statusCode: StatusCodes.FORBIDDEN,
+                    data: {
+                        message: MiddlewaresMessages.Forbidden
+                    }
+                    });
             }
         }
        } catch (error) {

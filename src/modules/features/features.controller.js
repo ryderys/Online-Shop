@@ -7,6 +7,8 @@ const { StatusCodes } = require("http-status-codes");
 const { createFeatureSchema, updateFeatureSchema } = require("../../common/validations/features.validation");
 const { CategoryModel } = require("../category/category.model");
 const { default: mongoose } = require("mongoose");
+const { FeaturesMessages } = require("./features.messages");
+const { logger } = require("../../common/utils/logger");
 
 class featuresController{
     constructor() {
@@ -32,11 +34,12 @@ class featuresController{
             return res.status(StatusCodes.CREATED).json({
                 statusCode: StatusCodes.CREATED,
                 data: {
-                    message: "feature created successfully"
+                    message: FeaturesMessages.FeatureCreated,
+                    feature
                 }
             })
         } catch (error) {
-            console.error(error)
+            logger.error(error)
             next(error)
         }
     }
@@ -45,7 +48,7 @@ class featuresController{
         try {
             const {id} = req.params
             if(!mongoose.Types.ObjectId.isValid(id)){
-                throw new httpError.BadRequest("invalid id format")
+                throw new httpError.BadRequest(FeaturesMessages.InvalidId)
             }
 
             const featureBody = await updateFeatureSchema.validateAsync(req.body)
@@ -80,12 +83,12 @@ class featuresController{
             return res.status(StatusCodes.OK).json({
                 statusCode: StatusCodes.OK,
                 data: {
-                    message: "feature updated successfully",
+                    message: FeaturesMessages.FeatureUpdated,
                     feature: updatedFeature
                 }
             })
         } catch (error) {
-            console.error(error)
+            logger.error(error)
             next(error)
         }
     }
@@ -146,6 +149,7 @@ class featuresController{
             }
         })
        } catch (error) {
+            logger.error(error)
             next(error)
        }
 
@@ -153,6 +157,9 @@ class featuresController{
 
     async findFeatureByCategoryId(req, res, next){
         const {categoryId} = req.params
+        if(!mongoose.Types.ObjectId.isValid(categoryId)){
+            throw new httpError.BadRequest(FeaturesMessages.InvalidId)
+        }
         const feature = await FeaturesModel.find({category: categoryId},{__v: 0}).populate({path: "category", select: "name slug"})
         return res.status(StatusCodes.OK).json({
             statusCode: StatusCodes.OK,
@@ -205,6 +212,7 @@ class featuresController{
                 }
             })
         } catch (error) {
+            logger.error(error)
             next(error)
         }
     }
@@ -212,15 +220,19 @@ class featuresController{
     async removeFeatureById(req, res, next){
         try {
             const {id} = req.params;
+            if(!mongoose.Types.ObjectId.isValid(id)){
+                throw new httpError.BadRequest(FeaturesMessages.InvalidId)
+            }
             await this.checkExistById(id)
             await FeaturesModel.deleteOne({_id: id})
             return res.status(StatusCodes.OK).json({
                 statusCode: StatusCodes.OK,
                 data: {
-                    message: "feature deleted successfully"
+                    message: FeaturesMessages.FeatureDeleted
                 }
             })
         } catch (error) {
+            logger.error(error)
             next(error)
         }
     }
@@ -229,20 +241,20 @@ class featuresController{
 
     async checkExistById(id){
         const features = await FeaturesModel.findById(id)
-        if(!features) throw new httpError.NotFound("option not found")
+        if(!features) throw new httpError.NotFound(FeaturesMessages.FeatureNotFound)
         return features
     }
 
     async checkExistCategoryBySlug(slug){
         const category = await CategoryModel.findOne({slug})
-        if(!category) throw new httpError.NotFound("category not found")
+        if(!category) throw new httpError.NotFound(FeaturesMessages.CategoryNotFound)
         return category
     }
 
     async alreadyExistByCategoryAndKey(key, category, exceptionId = null){
         try {
             const isExist = await FeaturesModel.findOne({category, key, _id: {$ne: exceptionId}})
-            if(isExist) throw new httpError.Conflict("feature already exist")
+            if(isExist) throw new httpError.Conflict(FeaturesMessages.FeatureExist)
         } catch (error) {
             throw error
         }

@@ -5,7 +5,7 @@ const AuthMessages = {
     OTPExpired: "کد شما منقضی شده است",
     InvalidOTP: "کد وارد شده اشتباه است",
     OTPSuccess: "کد تایید با موفقیت ارسال شد",
-    UserNotFound: "کاربری یافت نشد",
+    UserNotFound: "حساب کاربری یافت نشد",
     LoginSuccess: "شما با موفقیت وارد حساب کاربری خود شدید",
     LogIn: "لطفا وارد حساب کاربری خود شوید",
     RefreshFailed: "ورود مجدد انجام نشد",

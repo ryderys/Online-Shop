@@ -4,7 +4,9 @@ const { ProductModel } = require("../product/product.model");
 const httpError = require("http-errors");
 const CartModel = require("./cart.model");
 const { StatusCodes } = require("http-status-codes");
-const { AddToCartSchema, RemoveFromCartSchema } = require("../../common/validations/cart.validation");
+const { AddToCartSchema, RemoveFromCartSchema, UpdateItemQuantitySchema } = require("../../common/validations/cart.validation");
+const { CartMessages } = require("./cart.messages");
+const { logger } = require("../../common/utils/logger");
 
 class CartController{
     constructor(){
@@ -13,17 +15,15 @@ class CartController{
     async addItemToCart(req, res, next){
         try {
             await AddToCartSchema.validateAsync(req.body)
-            let cart;
             const {productId, quantity} = req.body;
             const userId = req.user._id;
 
             const product = await this.findProductById(productId)
             if(product.count < quantity){
-                throw new httpError.BadRequest("insufficient stock")
+                throw new httpError.BadRequest(CartMessages.InsufficientStock)
             }
 
-            cart = await CartModel.findOne({userId})
-
+            let cart = await CartModel.findOne({userId})
             if(!cart){
                 cart = await CartModel.create({userId, items: [{productId, quantity}]})
             }else{
@@ -40,107 +40,76 @@ class CartController{
             await this.validateCart(cart)
             await this.expireCart(cart, Date.now() + 30 * 60 * 1000)
 
-            return res.status(StatusCodes.OK).json({
-                statusCode: StatusCodes.OK,
-                data: {
-                    message: "item added to cart successfully",
-                    cart: {
-                        id: cart._id,
-                        userId: cart.userId,
-                        items: cart.items.map(item => ({
-                            id: item._id,
-                            productId: item.productId,
-                            quantity: item.quantity
-                        })),
-                        expiresAt: cart.expiresAt 
-                    }
-                }
-            })
+            return this.sendCartResponse(res, cart, CartMessages.AddedToCartSuccess)
 
         } catch (error) {
+            logger.error(error)
             next(error)
         }
     }
 
     async removeItemFromCart(req, res, next){
         try {
-            await RemoveFromCartSchema.validateAsync(req.body)
+            await RemoveFromCartSchema.validateAsync(req.params)
             const {productId} = req.params;
             const userId = req.user._id;
 
             let cart = await CartModel.findOne({userId})
             if(!cart){
-                throw new httpError.NotFound("Cart not found")
+                throw new httpError.NotFound(CartMessages.CartNotFound)
             }
 
             const initialItemCount = cart.items.length;
             cart.items = cart.items.filter(item => item.productId.toString() !== productId) 
             if(cart.items.length === initialItemCount){
-                throw new httpError.BadRequest("item not found in cart")
+                throw new httpError.BadRequest(CartMessages.ItemNotInCart)
             }
             await cart.save()
             
-            return res.status(StatusCodes.OK).json({
-                statusCode: StatusCodes.OK,
-                data: {
-                    message: "item removed from cart",
-                    cart: {
-                        _id: cart._id,
-                        userId: cart.userId,
-                        items: cart.items.map(item => ({
-                            id: item._id,
-                            productId: item.productId,
-                            quantity: item.quantity,
-                        })),
-                        expiresAt: cart.expiresAt,
-                        __v: cart.__v
-                    }
-                }
-            })
+            return this.sendCartResponse(res, cart, CartMessages.ItemRemoveSuccess)
         } catch (error) {
+            logger.error(error)
             next(error)
         }
     }
 
     async updateItemQuantity(req, res, next){
         try {
+            await UpdateItemQuantitySchema.validateAsync(req.body)
             const {productId, quantity} = req.body
             const userId = req.user._id;
 
             if(quantity <= 0){
-                throw new httpError.BadRequest("invalid quantity")
+                throw new httpError.BadRequest(CartMessages.InvalidQuantity)
             }
 
             const cart = await CartModel.findOne({userId});
             if(!cart){
-                throw new httpError.NotFound("Cart not found")
+                throw new httpError.NotFound(CartMessages.CartNotFound)
             }
 
             const product = await this.findProductById(productId)
             if(!product){
-                throw new httpError.NotFound("Product not found")
+                throw new httpError.NotFound(CartMessages.ProductNotFound)
             }
 
             const existingItem = cart.items.find(item => item.productId.equals(productId))
             if(existingItem){
                 existingItem.quantity = +quantity
             } else {
-                throw new httpError.NotFound("product not found in cart")
+                throw new httpError.NotFound(CartMessages.ItemNotInCart)
             }
+
             await cart.save()
             await this.validateCart(cart)
             await this.expireCart(cart, Date.now() + 30 * 60 * 1000)
             
 
-            return res.status(StatusCodes.OK).json({
-                statusCode: StatusCodes.OK,
-                data: {
-                    cart
-                }
-            })
+            return this.sendCartResponse(res, cart)
 
 
         } catch (error) {
+            logger.error(error)
             next(error)
         }
     }
@@ -151,30 +120,13 @@ class CartController{
         const cart = await CartModel.findOne({userId}).populate('items.productId')
 
         if(!cart){
-           throw new httpError.NotFound("cart not found")
+           throw new httpError.NotFound(CartMessages.CartNotFound)
         }
         await this.validateCart(cart)
 
-        const cartResponse = {
-            _id: cart._id,
-            userId: cart.userId,
-            items: cart.items.map((item) => ({
-              id: item._id,
-              productId: item.productId,
-              quantity: item.quantity,
-              productName: item.productId.name,
-              productPrice: item.productId.price,
-            })),
-            expiresAt: cart.expiresAt,
-          };
-
-        return res.status(StatusCodes.OK).json({
-            statusCode: StatusCodes.OK,
-            data: {
-                cart: cartResponse
-            }
-        })
+        return this.sendCartResponse(res, cart)
        } catch (error) {
+        logger.error(error)
             next(error)
        }
     }
@@ -184,7 +136,7 @@ class CartController{
             const userId = req.user._id;
             const cart = await CartModel.findOne({userId})
             if(!cart){
-                throw new httpError.NotFound("Cart not found")
+                throw new httpError.NotFound(CartMessages.CartNotFound)
             }
             cart.items =  [];
 
@@ -193,11 +145,12 @@ class CartController{
             return res.status(StatusCodes.OK).json({
                 statusCode: StatusCodes.OK,
                 data: {
-                    message: "cart cleared successfully"
+                    message: CartMessages.ClearCartSuccess
                 }
 
             })
         } catch (error) {
+            logger.error(error)
             next(error)
         }
     }
@@ -207,7 +160,7 @@ class CartController{
     async findProductById(productId){
         const {id} = await ObjectIdValidator.validateAsync({id: productId})
         const product = await ProductModel.findById(id)
-        if(!product) throw new httpError.NotFound("محصولی یافت نشد")
+        if(!product) throw new httpError.NotFound(CartMessages.ProductNotFound)
         return product
     }
 
@@ -229,6 +182,21 @@ class CartController{
     async expireCart(cart, expiresAt) {
     cart.expiresAt = expiresAt;
     await cart.save();
+    }
+
+    sendCartResponse(res, cart, message = null) {
+        const cartResponse = {
+            _id: cart._id,
+            userId: cart.userId,
+            items: cart.items.map(item => ({
+                id: item._id,
+                productId: item.productId,
+                quantity: item.quantity,
+                productName: item.productId.name,
+                productPrice: item.productId.price,
+            })),
+            expiresAt: cart.expiresAt,
+        };
     }
 }
 
