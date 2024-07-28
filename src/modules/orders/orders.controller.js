@@ -6,22 +6,24 @@ const { StatusCodes } = require("http-status-codes");
 const { logger } = require("../../common/utils/logger");
 const { UserModel } = require("../user/user.model");
 const PendingOrderModel = require("./pending-order.model");
+const { OrderMessages } = require("./order.messages");
+const { default: mongoose } = require("mongoose");
 class OrderController{
     constructor() {
         autoBind(this)
     }
 
     async createOrder(req, res, next){
+        const session = await mongoose.startSession()
+        session.startTransaction()
         try {
-            const userId = req.user._id;
-            
+            const userId = req.user._id;        
             const user = await UserModel.findById(userId)
 
             if(!user.fullName || !user.email ){
-
                 const cart = await CartModel.findOne({userId}).populate('items.productId')
                 if(!cart || cart.items.length === 0){
-                    throw new httpError.BadRequest('your cart is empty')
+                    throw new httpError.BadRequest(OrderMessages.CartEmpty)
                 }
 
                 const totalAmount = cart.items.reduce((sum, item) => sum + (item.productId.price * item.quantity), 0)
@@ -38,11 +40,13 @@ class OrderController{
                 })
 
                 await pendingOrder.save();
+                await session.commitTransaction()
+                await session.endSession()
 
                 return res.status(StatusCodes.BAD_REQUEST).json({
                     statusCode: StatusCodes.BAD_REQUEST,
                     data: {
-                        message: "Please complete your profile ",
+                        message: OrderMessages.UpdateProfile,
                         redirectTo: '/profile'
                     }
                 })
@@ -50,7 +54,7 @@ class OrderController{
 
             const cart = await CartModel.findOne({userId}).populate('items.productId')
             if(!cart || cart.items.length === 0){
-                throw new httpError.BadRequest('your cart is empty')
+                throw new httpError.BadRequest(OrderMessages.CartEmpty)
             }
             //calculating the total amount
             const totalAmount = cart.items.reduce((sum, item) => sum + (item.productId.price * item.quantity), 0)
@@ -71,6 +75,8 @@ class OrderController{
             //clearing the cart
             cart.items = []
             await cart.save()
+            await session.commitTransaction()
+            session.endSession()
             logger.info(`Order created for user ${userId} with order ID ${order._id}`)
             return res.status(StatusCodes.CREATED).json({
                 statusCode: StatusCodes.CREATED,
@@ -79,6 +85,8 @@ class OrderController{
                 }
             })
         } catch (error) {
+            await session.abortTransaction()
+            session.endSession()
             logger.error(`Error creating order: ${error.message}`);
             next(error)
         }
@@ -89,7 +97,7 @@ class OrderController{
             const {orderId} = req.params;
             const order = await OrderModel.findById(orderId).populate('items.productId')
             if(!order){
-                throw new httpError.NotFound('Order not found')
+                throw new httpError.NotFound(OrderMessages.OrderNotFound)
             }
 
             return res.status(StatusCodes.OK).json({
@@ -99,6 +107,7 @@ class OrderController{
                 }
             })
         } catch (error) {
+            logger.error(error)
             next(error)
         }
     }
@@ -115,6 +124,7 @@ class OrderController{
                 }
             })
         } catch (error) {
+            logger.error(error)
             next(error)
         }
     }
@@ -160,6 +170,7 @@ class OrderController{
                 }
             })
         } catch (error) {
+            logger.error(error)
             next(error)
         }
     }
@@ -169,7 +180,7 @@ class OrderController{
             const {orderId} = req.params
             const order = await OrderModel.findById(orderId).populate('items.productId')
             if(!order) {
-                throw new httpError.NotFound('Order not found')
+                throw new httpError.NotFound(OrderMessages.OrderNotFound)
             }
             return res.status(StatusCodes.OK).json({
                 statusCode: StatusCodes.OK,
@@ -178,6 +189,7 @@ class OrderController{
                 }
             })
         } catch (error) {
+            logger.error(error)
             next(error)
         }
     }
@@ -189,7 +201,7 @@ class OrderController{
 
             const order = await OrderModel.findOne({_id: orderId, userId})
             if(!order || order.status !== 'Pending'){
-                throw new httpError.BadRequest('order can not be canceled')
+                throw new httpError.BadRequest(OrderMessages.OrderCancelFailed)
             }
 
             order.status = 'cancelled'
@@ -198,10 +210,11 @@ class OrderController{
             return res.status(StatusCodes.OK).json({
                 statusCode: StatusCodes.OK,
                 data: {
-                    message: "order canceled successfully"
+                    message: OrderMessages.OrderCanceled
                 }
             })
         } catch (error) {
+            logger.error(error)
             next(error)
         }
     }

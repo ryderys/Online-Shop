@@ -3,18 +3,22 @@ const {StatusCodes} = require("http-status-codes")
 const { listOfImagesFromRequest, setFeatures, deleteFileInPublic } = require("../../common/utils/functions");
 const { ProductModel } = require("./product.model");
 const httpError = require("http-errors")
-const { createProductSchema } = require("../../common/validations/product.validation");
+const { createProductSchema, updateProductSchema } = require("../../common/validations/product.validation");
 const ObjectIdValidator = require("../../common/validations/public.validations");
 const FeaturesModel = require("../features/features.model");
 const { CategoryModel } = require("../category/category.model");
+const { ProductMessages } = require("./product.messages");
+const { logger } = require("../../common/utils/logger");
+const { default: mongoose } = require("mongoose");
 
 class ProductController {
     constructor(){
         autoBind(this)
     }
     async addProduct(req, res, next){
+        const session = await ProductModel.startSession()
+        session.startTransaction()
         try {
-        
             const images = req?.files?.map(image => image?.path?.slice(7));
 
             const productBody = await createProductSchema.validateAsync(req.body)
@@ -26,7 +30,7 @@ class ProductController {
             const categoryFeaturesObject = this.convertFeaturesToObject(categoryFeatures);
             const validatedFeatures = this.validateFeatures(features, categoryFeaturesObject);
 
-            const product = await ProductModel.create({
+            const product = await ProductModel.create([{
                 title,
                 summary,
                 description,
@@ -37,21 +41,23 @@ class ProductController {
                 images,
                 features: validatedFeatures,
                 category
-            })
+            }], {session})
+
+            await session.commitTransaction()
+            session.endSession()
+
             return res.status(StatusCodes.CREATED).json({
                 statusCode: StatusCodes.CREATED,
                 data: {
-                    message: "ثبت محصول با موفقیت انجام شد"
+                    message: ProductMessages.ProductCreated
                 }
             })
 
         } catch (error) {
-            if(req?.files){
-                req.files.forEach(file  => {
-                    deleteFileInPublic(file.path.slice(7)) 
-                })
-            }
-            console.error(error) 
+            await session.abortTransaction()
+            session.endSession()
+            await this.deleteUploadedFiles(req?.files)
+            logger.error(error)
             next(error)
         }
     }
@@ -60,18 +66,13 @@ class ProductController {
         try {
             const {id} = req.params;
             const product = await this.findProductById(id)
-            const updates = req.body;
+
+            const updates = await updateProductSchema.validateAsync(req.body);
 
             // If new images are uploaded, map their paths and delete old images
             if (req?.files?.length > 0) {
                 const newImages = req.files.map(image => image.path.slice(7));
-            
-            // Delete old images
-                if (product.images && product.images.length > 0) {
-                    product.images.forEach(image => {
-                        deleteFileInPublic(image);
-                    });
-                }
+                await this.deleteUploadedFiles(product.images)
                 updates.images = newImages;
         }
         
@@ -87,16 +88,13 @@ class ProductController {
             return res.status(StatusCodes.OK).json({
                 statusCode: StatusCodes.OK,
                 data: {
-                    message: "محصول با موفقیت ویرایش شد",
+                    message: ProductMessages.ProductUpdated,
                     product
                 }
             })
         } catch (error) {
-            if (req?.files){
-                req.files.forEach(file  => {
-                    deleteFileInPublic(file.path.slice(7)) 
-                })
-            }
+            await this.deleteUploadedFiles(req?.files)
+            logger.error(error)
             next(error)
         }
 
@@ -126,12 +124,6 @@ class ProductController {
                 },
                 {$unwind: "$category"},
                 {
-                    $addFields: {
-                        likesCount: { $size: "$likes"},
-                        commentsCount: { $size: "$comments"},
-                    }
-                },
-                {
                     $project: {
                         _id: 0,
                     id: "$_id",
@@ -143,8 +135,8 @@ class ProductController {
                     images: 1,
                     tags: 1,
                     features: 1,
-                    likesCount: 1,
-                    commentsCount: 1,
+                    reviewCount: 1,
+                    averageRating: 1,
                     supplier: 1,
                     category: {
                         id: "$category._id",
@@ -159,7 +151,7 @@ class ProductController {
                 }
             },
 
-            ])
+            ]).lean();
 
             return res.status(StatusCodes.OK).json({
                 statusCode: StatusCodes.OK,
@@ -168,6 +160,7 @@ class ProductController {
                 }
             })
         } catch (error) {
+            logger.error(error)
             next(error)
         }
     }
@@ -183,6 +176,7 @@ class ProductController {
                 }
             })
         } catch (error) {
+            logger.error(error)
             next(error)
         }
     }
@@ -196,11 +190,12 @@ class ProductController {
             return res.status(StatusCodes.OK).json({
                 statusCode: StatusCodes.OK,
                 data: {
-                    message: "حذف محصول با موفقیت انجام شد"
+                    message: ProductMessages.ProductDeleted
                 }
         })
 
         } catch (error) {
+            logger.error(error)
             next(error)
         }
     }
@@ -209,7 +204,7 @@ class ProductController {
     async findProductById(productId){
         const {id} = await ObjectIdValidator.validateAsync({id: productId})
         const product = await ProductModel.findById(id)
-        if(!product) throw new httpError.NotFound("محصولی یافت نشد")
+        if(!product) throw new httpError.NotFound(ProductMessages.ProductNotFound)
         return product
     }
 
@@ -217,12 +212,14 @@ class ProductController {
         const features = await FeaturesModel.find({category: categoryId})
         return features
     }
+
     convertFeaturesToObject(features) {
         return features.reduce((obj, feature) => {
             obj[feature.key] = feature;
             return obj;
         }, {});
     }
+
     validateFeatures(providedFeatures, categoryFeatures) {
         const validatedFeatures = {};
         for (const key in providedFeatures) {
@@ -233,6 +230,14 @@ class ProductController {
             }
         }
         return validatedFeatures;
+    }
+
+    async deleteUploadedFiles(files){
+        if(files){
+            files.forEach(file => {
+                deleteFileInPublic(file.path.slice(7))
+            })
+        }
     }
 
 }

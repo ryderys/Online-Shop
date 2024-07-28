@@ -1,5 +1,6 @@
 const path = require("path")
-const fs = require("fs")
+const fs = require("fs");
+const { logger } = require("./logger");
 
 function listOfImagesFromRequest(files, fileUploadPath) {
   if (!Array.isArray(files)) {
@@ -48,15 +49,23 @@ function setFeatures(body) {
 }
 
 function deleteFileInPublic(fileAddress) {
+  if(!fileAddress){
+    logger.error("No file address provided to deleteFileInPublic")
+    return
+  }
   const normalizedPath = path.normalize(fileAddress)
   const pathFile = path.join(__dirname, "..", "..", "public", normalizedPath);
   if (fs.existsSync(pathFile)) {
       try {
           fs.unlinkSync(pathFile);
+          logger.info(`Successfully deleted file: ${pathFile}`)
       } catch (error) {
-          console.error(`Failed to delete file: ${pathFile}`, error);
+        logger.error(error)
+        next(error)
           // Optionally rethrow the error or handle it as needed
       }
+  } else {
+    logger.warn(`File not found: ${pathFile}`)
   }
 }
 const removePropertyInObject = (target = {}, properties = []) => {

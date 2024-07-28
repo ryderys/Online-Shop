@@ -2,28 +2,31 @@ const autoBind = require("auto-bind");
 const httpError = require("http-errors");
 const { StatusCodes } = require("http-status-codes");
 const ReviewModel = require("./review.model");
-const { ReviewSchema } = require("../../common/validations/reviews.validation");
+const { ReviewSchema, UpdateReviewSchema } = require("../../common/validations/reviews.validation");
 const { logger } = require("../../common/utils/logger");
 const { ProductModel } = require("../product/product.model");
 const { default: mongoose } = require("mongoose");
+const { ReviewsMessages } = require("./reviews.messages");
 
 class ReviewController{
     constructor() {
         autoBind(this)
     }
 
-    async updateProductReviewSummary(productId){
-        const reviews = await ReviewModel.find({productId})
+    async updateProductReviewSummary(productId, session = null){
+        const reviews = await ReviewModel.find({productId}).session()
         const reviewCount = reviews.length;
         const averageRating= reviews.reduce((sum, review) => sum + review.rating, 0) / reviewCount
 
         await ProductModel.findByIdAndUpdate(productId, {
             averageRating: averageRating || 0,
             reviewCount    
-        })
+        }, { session })
     }
 
     async createReview(req, res, next){
+        const session = await mongoose.startSession()
+        session.startTransaction(  )
         try {
             await ReviewSchema.validateAsync(req.body)
             const userId = req.user._id;
@@ -32,7 +35,7 @@ class ReviewController{
 
             const product = await ProductModel.findById(productId)
             if(!product){
-                throw new httpError.NotFound("product not found")
+                throw new httpError.NotFound(ReviewsMessages.productNotFound)
             }
 
             const review = new ReviewModel({
@@ -44,6 +47,9 @@ class ReviewController{
 
             await review.save()
             await this.updateProductReviewSummary(productId)
+
+            await session.commitTransaction()
+            session.endSession()
             return res.status(StatusCodes.OK).json({
                 statusCode: StatusCodes.OK,
                 data: {
@@ -51,6 +57,8 @@ class ReviewController{
                 }
             })
         } catch (error) {
+            await session.abortTransaction()
+            session.endSession()
             logger.error(error)
             next(error)
         }
@@ -60,6 +68,7 @@ class ReviewController{
             const {productId} = req.params;
             const {page = 1, limit = 10} = req.query;
             const reviews = await ReviewModel.find({productId}).populate('userId', 'name').skip((page - 1) * limit).limit(+limit)
+            // .select('rating comment userId created updatedAt')
             const totalReviews = await ReviewModel.countDocuments({productId})
 
             return res.status(StatusCodes.OK).json({
@@ -78,22 +87,28 @@ class ReviewController{
     }
 
     async updateReview(req, res, next){
+        const session = await mongoose.startSession()
+        session.startTransaction()
         try {
+
             const userId = req.user._id;
             const {reviewId} = req.params;
+            await UpdateReviewSchema.validateAsync(req.body)
             const {rating, comment} = req.body;
             
             const review = await ReviewModel.findOneAndUpdate(
                 {_id: reviewId, userId},
                 {rating, comment},
-                {new : true}
+                {new : true, session}
             )
             if(!review){
-                throw new httpError.NotFound("Review not found or not authorized to update")
+                throw new httpError.NotFound(ReviewsMessages.ReviewNotFound)
             }
 
-            await this.updateProductReviewSummary(review.productId)
+            await this.updateProductReviewSummary(review.productId, session)
 
+            await session.commitTransaction()
+            session.endSession()
 
             return res.status(StatusCodes.OK).json({
                 statusCode: StatusCodes.OK,
@@ -102,27 +117,36 @@ class ReviewController{
                 }
             })
         } catch (error) {
+            await session.abortTransaction()
+            session.endSession()
             logger.error(error)
             next(error)
         }
     }
 
     async deleteReview(req, res, next){
+        const session = await mongoose.startSession()
+        session.startTransaction()
         try {
             const userId = req.user._id;
             const {reviewId} = req.params;
 
             const review = await ReviewModel.findOneAndDelete({_id: reviewId, userId})
             if(!review){
-                throw new httpError.NotFound("Review not found or not authorized to update")
+                throw new httpError.NotFound(ReviewsMessages.ReviewNotFound)
             }
+            await this.updateProductReviewSummary(review.productId, session)
+            await session.commitTransaction()
+            session.endSession()
             return res.status(StatusCodes.OK).json({
                 statusCode: StatusCodes.OK,
                 data: {
-                    message: "review deleted successfully"
+                    message: ReviewsMessages.ReviewDeleted
                 }
             })
         } catch (error) {
+            await session.abortTransaction()
+            session.endSession()
             logger.error(error)
             next(error)
         }
