@@ -4,6 +4,9 @@ const httpError = require("http-errors");
 const CartModel = require("../cart/cart.model");
 const { savedItemsModel } = require("./savedItem.model");
 const { ProductModel } = require("../product/product.model");
+const { SavedItemMessages } = require("./savedItems.messages");
+const { logger } = require("../../common/utils/logger");
+const { default: mongoose, mongo } = require("mongoose");
 
 class SavedItemsController{
     constructor(){
@@ -11,6 +14,8 @@ class SavedItemsController{
     }
 
     async saveItemForLater(req, res, next){
+        const session =await mongoose.startSession()
+        session.startTransaction()
         try {
             const {productId} = req.body;
             const userId = req.user._id;
@@ -18,20 +23,20 @@ class SavedItemsController{
              // Find the user's cart
             const cart = await CartModel.findOne({userId});
             if(!cart){
-                throw new httpError.NotFound("cart not found")
+                throw new httpError.NotFound(SavedItemMessages.CartNotFound)
             }
 
              // Find the item in the cart
             const itemIndex = cart.items.findIndex(item => item.productId.equals(productId))
             if(itemIndex === -1){
-                throw new httpError.NotFound("item not found in your cart")
+                throw new httpError.NotFound(SavedItemMessages.ItemNotFound)
             }
 
             const item = cart.items[itemIndex] // Get the item from the cart
             cart.items.splice(itemIndex, 1) // Remove the item from the cart
 
             // Find or create the saved items list for the user
-            let savedItems = await savedItemsModel.findOne({userId})
+            let savedItems = await savedItemsModel.findOne({userId}).session(session)
             if(!savedItems){
                 savedItems = new savedItemsModel({userId, items: []})
             }
@@ -39,8 +44,10 @@ class SavedItemsController{
             // Add the item to the saved items list
             savedItems.items.push({productId: item.productId})
 
-            await cart.save() // Save the updated cart
-            await savedItems.save() // Save the updated saved items list
+            await cart.save({session}) // Save the updated cart
+            await savedItems.save({session}) // Save the updated saved items list
+            await session.commitTransaction()
+            session.endSession()
 
             return res.status(StatusCodes.OK).json({
                 statusCode: StatusCodes.OK,
@@ -50,6 +57,9 @@ class SavedItemsController{
                 }
             })
         } catch (error) {
+            await session.abortTransaction()
+            session.endSession()
+            logger.error(error)
             next(error)
         }
     }
@@ -61,12 +71,12 @@ class SavedItemsController{
 
             const savedItems = await savedItemsModel.findOne({userId})
             if(!savedItems){
-                throw new httpError.NotFound("no saved items found")
+                throw new httpError.NotFound(SavedItemMessages.ItemNotInSaved)
             }
 
             const itemIndex = cart.items.findIndex(item => item.productId.equals(productId))
             if(itemIndex === -1){
-                throw new httpError.NotFound("item not found in your cart")
+                throw new httpError.NotFound(SavedItemMessages.ItemNotFound)
             }
 
             savedItems.items.splice(itemIndex, 1)
@@ -75,13 +85,14 @@ class SavedItemsController{
             return res.status(StatusCodes.OK).json({
                 statusCode: StatusCodes.OK,
                 data: {
-                    message: "item removed",
+                    message: SavedItemMessages.ItemRemoved,
                     savedItems
                 }
             })
 
 
         } catch (error) {
+            logger.error(error)
             next(error)
         }
     }
@@ -92,7 +103,7 @@ class SavedItemsController{
     
             let savedItems = await savedItemsModel.findOne({ userId });
             if (!savedItems) {
-                throw new httpError.NotFound('No saved items found');
+                throw new httpError.NotFound(SavedItemMessages.ItemNotInSaved);
             }
     
             savedItems.items = [];
@@ -101,10 +112,11 @@ class SavedItemsController{
             return res.status(StatusCodes.OK).json({
                 statusCode: StatusCodes.OK,
                 data: {
-                    message: 'All saved items have been removed'
+                    message: SavedItemMessages.ItemsCleared
                 }
             });
         } catch (error) {
+            logger.error(error)
             next(error);
         }
     }
@@ -132,32 +144,35 @@ class SavedItemsController{
                 }
             });
         } catch (error) {
+            logger.error(error)
             next(error);
         }
     }
     
 
     async moveSavedItemToCart(req, res, next){
+        const session = await mongoose.startSession()
+        session.startTransaction()
         try {
             const {productId} = req.body;
             const userId = req.user._id;
 
-            const product = await ProductModel.findById(productId)
+            const product = await ProductModel.findById(productId).session(session)
             if(!product){
-                throw new httpError.NotFound("product not found")
+                throw new httpError.NotFound(SavedItemMessages.ProductNotFound)
             }
 
-            let savedItems = await savedItemsModel.findOne({userId})
+            let savedItems = await savedItemsModel.findOne({userId}).session(session)
             if(!savedItems){
-                throw new httpError.NotFound("no saved items found")
+                throw new httpError.NotFound(SavedItemMessages.ItemNotInSaved)
             }
 
             const itemIndex = savedItems.items.findIndex(item => item.productId.equals(productId))
             if (itemIndex === -1){
-                throw new httpError.NotFound('items not found in saved items')
+                throw new httpError.NotFound(SavedItemMessages.ItemNotInSaved)
             }
 
-            let cart = await CartModel.findOne({userId})
+            let cart = await CartModel.findOne({userId}).session(session)
             if(!cart){
                 cart = new CartModel({userId, items: []})
             }
@@ -170,8 +185,11 @@ class SavedItemsController{
             } 
 
             savedItems.items.splice(itemIndex, 1)
-            await savedItems.save()
-            await cart.save()
+            await savedItems.save({session})
+            await cart.save({session})
+
+            await session.commitTransaction()
+            session.endSession()
 
             return res.status(StatusCodes.OK).json({
                 statusCode: StatusCodes.OK,
@@ -181,7 +199,9 @@ class SavedItemsController{
                 }
             })
         } catch (error) {
-            console.error(error)
+            await session.abortTransaction()
+            session.endSession()
+            logger.error(error)
             next(error)
         }
     }
@@ -190,7 +210,7 @@ class SavedItemsController{
             const userId = req.user._id
             const savedItems = await savedItemsModel.findOne({userId}).populate('items.productId')
             if(!savedItems){
-                throw new httpError.NotFound('no saved items found')
+                throw new httpError.NotFound(SavedItemMessages.ItemNotInSaved)
             }
             return res.status(StatusCodes.OK).json({
                 statusCode: StatusCodes.OK,
@@ -199,6 +219,7 @@ class SavedItemsController{
                 }
             })
         } catch (error) {
+            logger.error(error)
             next(error)
         }
     }

@@ -6,6 +6,8 @@ const CartModel = require("../cart/cart.model");
 const OrderModel = require("../orders/orders.model");
 const PendingOrderModel = require("../orders/pending-order.model");
 const { logger } = require("../../common/utils/logger");
+const { userValidationSchema } = require("../../common/validations/user.validation");
+const { UserMessages } = require("./user.messages");
 
 class UserController{
     constructor(){
@@ -28,47 +30,19 @@ class UserController{
     async updateUserProfile(req, res, next){
         try {
             const userId = req.user._id;
+            await userValidationSchema.validateAsync(req.body)
             const data = {... req.body};
             delete data.role
 
             const {modifiedCount} = await UserModel.updateOne({_id: userId}, {$set: data})
-            if(!modifiedCount) throw new httpError.InternalServerError("به روزرسانی انجام نشد")
+            if(!modifiedCount) throw new httpError.InternalServerError(UserMessages.UpdateFailed)
 
-            const pendingOrder = await PendingOrderModel.findOne({userId})
-            if(pendingOrder){
-                const cart = await CartModel.findOne({userId}).populate('items.productId')
+            await this.processPendingOrder(userId)
 
-                if(!cart || cart.items.length === 0){
-                    throw new httpError.BadRequest('Your cart is empty')
-                }
-                const totalAmount = cart.items.reduce((sum, item) => sum + (item.productId.price * item.quantity), 0)
-                const order = await PendingOrderModel.create({
-                    userId: pendingOrder.userId,
-                    items: cart.items.map(item => ({
-                        productId: item.productId._id,
-                        quantity: item.quantity, 
-                        price: item.productId.price
-                    })),
-                    totalAmount,
-                    status: "pending"
-                })
-                await order.save()
-                cart.items = []
-                await cart.save()
-                await PendingOrderModel.deleteOne({userId})
-                logger.info(`Order created for user ${userId} with order ID ${order._id}`)
-                return res.status(StatusCodes.CREATED).json({
-                    statusCode: StatusCodes.CREATED,
-                    data: {
-                        message: "profile updated and order created successfully",
-                        order
-                    }
-                })
-            }
             return res.status(StatusCodes.OK).json({
                 statusCode: StatusCodes.OK,
                 data: {
-                    message: "profile updated  successfully",
+                    message: UserMessages.ProfileUpdated,
                 }
         })
 
@@ -94,6 +68,37 @@ class UserController{
             next(error)
         }
     }
+
+    async processPendingOrder(userId){
+        const pendingOrder = await PendingOrderModel.findOne({userId})
+            if(pendingOrder){
+                const cart = await CartModel.findOne({userId}).populate('items.productId')
+                if(!cart || cart.items.length === 0){
+                    throw new httpError.BadRequest(UserMessages.CartIsEmpty)
+                }
+                const totalAmount = cart.items.reduce((sum, item) => sum + (item.productId.price * item.quantity), 0)
+                const order = await PendingOrderModel.create({
+                    userId: pendingOrder.userId,
+                    items: cart.items.map(item => ({
+                        productId: item.productId._id,
+                        quantity: item.quantity, 
+                        price: item.productId.price
+                    })),
+                    totalAmount,
+                    status: "pending"
+                })
+                await order.save()
+                cart.items = []
+                await cart.save()
+                await PendingOrderModel.deleteOne({userId})
+                logger.info(`Order created for user ${userId} with order ID ${order._id}`)
+
+                return order
+            }
+        }
+
+
+        
 }
 
 module.exports = new UserController()

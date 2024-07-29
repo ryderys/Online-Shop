@@ -13,7 +13,7 @@ const UserSchema = new mongoose.Schema({
     // password: {type: String},
     mobile: {type: String, required: true, unique: true},
     refreshToken: {type: String},
-    verifiedMobile: {type: Boolean, default: false, required: true},
+    verifiedMobile: {type: Boolean, default: false},
     otp: {type: OTPSchema },
     cart: {type: Schema.Types.ObjectId, ref: "Cart" },
     savedItems: {type: Schema.Types.ObjectId, ref: "SavedItems" },
