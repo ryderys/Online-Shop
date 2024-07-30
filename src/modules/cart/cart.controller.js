@@ -12,6 +12,16 @@ class CartController{
     constructor(){
         autoBind(this)
     }
+
+    async getOrCreateCart(userId){
+        let cart = await CartModel.findOne({userId})
+        if(!cart){
+            cart = new CartModel({userId, items : []})
+            await cart.save()
+        }
+        return cart
+    }
+
     async addItemToCart(req, res, next){
         try {
             await AddToCartSchema.validateAsync(req.body)
@@ -23,19 +33,15 @@ class CartController{
                 throw new httpError.BadRequest(CartMessages.InsufficientStock)
             }
 
-            let cart = await CartModel.findOne({userId})
-            if(!cart){
-                cart = await CartModel.create({userId, items: [{productId, quantity}]})
-            }else{
-                const existingItem = cart.items.find(item => item.productId.equals(productId))
-    
+
+            let cart = await this.getOrCreateCart(userId)
+            const existingItem = cart.items.find(item => item.productId.equals(productId))
                 if(existingItem){
                     existingItem.quantity += +quantity; 
                 }else {
                     cart.items.push({productId, quantity})
                 }
                 await cart.save()
-            }
 
             await this.validateCart(cart)
             await this.expireCart(cart, Date.now() + 30 * 60 * 1000)

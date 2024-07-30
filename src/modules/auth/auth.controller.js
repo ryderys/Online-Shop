@@ -41,12 +41,12 @@ async getOTP(req, res, next){
             await user.save()
         } else {
             const newUser = await UserModel.create({mobile, otp})
-            const cart = new CartModel({userId: newUser._id, items: []})
-            const savedItems = new savedItemsModel({userId: newUser._id, items: []})
-            await cart.save()
-            await savedItems.save()
-            newUser.cart = cart._id
-            newUser.savedItems = savedItems._id;
+            // const cart = new CartModel({userId: newUser._id, items: []})
+            // const savedItems = new savedItemsModel({userId: newUser._id, items: []})
+            // await cart.save()
+            // await savedItems.save()
+            // newUser.cart = cart._id
+            // newUser.savedItems = savedItems._id;
             await newUser.save()
             
             return res.status(StatusCodes.CREATED).json({
@@ -170,18 +170,18 @@ async logout(req, res, next){
 
 
 async signToken(payload){
-    return jwt.sign(payload, process.env.JWT_SECRET_KEY, { expiresIn: '15m' });
+    return jwt.sign(payload, process.env.JWT_SECRET_KEY, { expiresIn: '1h' });
 }
 
 async signRefreshToken(payload){
-    const refreshToken = jwt.sign(payload, process.env.JWT_REFRESH_SECRET_KEY, { expiresIn: '5d' });
+    const refreshToken = jwt.sign(payload, process.env.JWT_REFRESH_SECRET_KEY, { expiresIn: '7d' });
     return refreshToken
     // return crypto.createHash('sha256').update(refreshToken).digest('hex')
 }
 
 async hashToken(token){
-    const salt = bcrypt.genSaltSync(10)
-    return bcrypt.hashSync(token, salt)
+    const salt = await bcrypt.genSalt(10)
+    return bcrypt.hash(token, salt)
 }
 
 async verifyRefreshToken(token, secret){
@@ -193,19 +193,19 @@ async verifyRefreshToken(token, secret){
 }
 
 async compareRefreshToken (plainToken, hashedToken){
-    return  bcrypt.compareSync(plainToken, hashedToken)
+    return  bcrypt.compare(plainToken, hashedToken)
 }
 
 setToken(res, accessToken, refreshToken){
     return res.cookie(CookieNames.AccessToken, accessToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        samSite: "strict",
-        maxAge: 1000 * 60 *  15
+        sameSite: "strict",
+        maxAge: 1000 * 60 *  60
     }).cookie(CookieNames.RefreshToken, refreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        samSite: "strict",
+        sameSite: "strict",
         maxAge: 1000 * 60 * 60 * 24 * 7 //7 days
     })
 }

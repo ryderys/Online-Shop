@@ -14,8 +14,6 @@ class OrderController{
     }
 
     async createOrder(req, res, next){
-        const session = await mongoose.startSession()
-        session.startTransaction()
         try {
             const userId = req.user._id;        
             const user = await UserModel.findById(userId)
@@ -40,8 +38,6 @@ class OrderController{
                 })
 
                 await pendingOrder.save();
-                await session.commitTransaction()
-                await session.endSession()
 
                 return res.status(StatusCodes.BAD_REQUEST).json({
                     statusCode: StatusCodes.BAD_REQUEST,
@@ -75,8 +71,6 @@ class OrderController{
             //clearing the cart
             cart.items = []
             await cart.save()
-            await session.commitTransaction()
-            session.endSession()
             logger.info(`Order created for user ${userId} with order ID ${order._id}`)
             return res.status(StatusCodes.CREATED).json({
                 statusCode: StatusCodes.CREATED,
@@ -85,8 +79,6 @@ class OrderController{
                 }
             })
         } catch (error) {
-            await session.abortTransaction()
-            session.endSession()
             logger.error(`Error creating order: ${error.message}`);
             next(error)
         }

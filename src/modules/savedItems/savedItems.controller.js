@@ -44,7 +44,7 @@ class SavedItemsController{
 
             await cart.save() // Save the updated cart
             await savedItems.save() // Save the updated saved items list
-
+            
             return res.status(StatusCodes.OK).json({
                 statusCode: StatusCodes.OK,
                 data: {
