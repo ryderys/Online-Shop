@@ -113,7 +113,7 @@ async checkOTP(req, res, next ){
     }
 }
 
-async refreshAccessToken(req, res, next){
+async refreshToken(req, res, next){
     try {
         const refreshToken = req.cookies[CookieNames.RefreshToken]
         if(!refreshToken) throw new httpError.Unauthorized(AuthMessages.LogIn)
@@ -136,7 +136,7 @@ async refreshAccessToken(req, res, next){
 
         user.refreshToken = hashedNewRefreshToken
         await user.save()
-        this.setToken(res, accessToken, hashedNewRefreshToken)
+        this.setToken(res, accessToken, newRefreshToken)
 
         return res.status(StatusCodes.OK).json({
             statusCode: StatusCodes.OK,
@@ -193,7 +193,7 @@ async verifyRefreshToken(token, secret){
 }
 
 async compareRefreshToken (plainToken, hashedToken){
-    return await bcrypt.compareSync(plainToken, hashedToken)
+    return  bcrypt.compareSync(plainToken, hashedToken)
 }
 
 setToken(res, accessToken, refreshToken){

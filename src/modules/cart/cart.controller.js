@@ -30,7 +30,7 @@ class CartController{
                 const existingItem = cart.items.find(item => item.productId.equals(productId))
     
                 if(existingItem){
-                    existingItem.quantity = +existingItem.quantity + +quantity; 
+                    existingItem.quantity += +quantity; 
                 }else {
                     cart.items.push({productId, quantity})
                 }
@@ -197,6 +197,14 @@ class CartController{
             })),
             expiresAt: cart.expiresAt,
         };
+
+        return res.status(StatusCodes.OK).json({
+            statusCode: StatusCodes.OK,
+            data: {
+                cart: cartResponse,
+                message
+            }
+        })
     }
 }
 

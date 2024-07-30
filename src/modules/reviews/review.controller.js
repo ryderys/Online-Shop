@@ -13,20 +13,18 @@ class ReviewController{
         autoBind(this)
     }
 
-    async updateProductReviewSummary(productId, session = null){
-        const reviews = await ReviewModel.find({productId}).session()
+    async updateProductReviewSummary(productId){
+        const reviews = await ReviewModel.find({productId})
         const reviewCount = reviews.length;
-        const averageRating= reviews.reduce((sum, review) => sum + review.rating, 0) / reviewCount
+        const averageRating= reviews.reduce((sum, review) => sum + review.rating, 0) / (reviewCount || 1)
 
         await ProductModel.findByIdAndUpdate(productId, {
             averageRating: averageRating || 0,
             reviewCount    
-        }, { session })
+        })
     }
 
     async createReview(req, res, next){
-        const session = await mongoose.startSession()
-        session.startTransaction(  )
         try {
             await ReviewSchema.validateAsync(req.body)
             const userId = req.user._id;
@@ -48,8 +46,6 @@ class ReviewController{
             await review.save()
             await this.updateProductReviewSummary(productId)
 
-            await session.commitTransaction()
-            session.endSession()
             return res.status(StatusCodes.OK).json({
                 statusCode: StatusCodes.OK,
                 data: {
@@ -57,8 +53,6 @@ class ReviewController{
                 }
             })
         } catch (error) {
-            await session.abortTransaction()
-            session.endSession()
             logger.error(error)
             next(error)
         }
@@ -87,8 +81,6 @@ class ReviewController{
     }
 
     async updateReview(req, res, next){
-        const session = await mongoose.startSession()
-        session.startTransaction()
         try {
 
             const userId = req.user._id;
@@ -99,16 +91,14 @@ class ReviewController{
             const review = await ReviewModel.findOneAndUpdate(
                 {_id: reviewId, userId},
                 {rating, comment},
-                {new : true, session}
+                {new : true}
             )
             if(!review){
                 throw new httpError.NotFound(ReviewsMessages.ReviewNotFound)
             }
 
-            await this.updateProductReviewSummary(review.productId, session)
+            await this.updateProductReviewSummary(review.productId)
 
-            await session.commitTransaction()
-            session.endSession()
 
             return res.status(StatusCodes.OK).json({
                 statusCode: StatusCodes.OK,
@@ -117,16 +107,12 @@ class ReviewController{
                 }
             })
         } catch (error) {
-            await session.abortTransaction()
-            session.endSession()
             logger.error(error)
             next(error)
         }
     }
 
     async deleteReview(req, res, next){
-        const session = await mongoose.startSession()
-        session.startTransaction()
         try {
             const userId = req.user._id;
             const {reviewId} = req.params;
@@ -135,9 +121,7 @@ class ReviewController{
             if(!review){
                 throw new httpError.NotFound(ReviewsMessages.ReviewNotFound)
             }
-            await this.updateProductReviewSummary(review.productId, session)
-            await session.commitTransaction()
-            session.endSession()
+            await this.updateProductReviewSummary(review.productId)
             return res.status(StatusCodes.OK).json({
                 statusCode: StatusCodes.OK,
                 data: {
@@ -145,8 +129,6 @@ class ReviewController{
                 }
             })
         } catch (error) {
-            await session.abortTransaction()
-            session.endSession()
             logger.error(error)
             next(error)
         }
@@ -156,7 +138,7 @@ class ReviewController{
         try {
             const {productId} = req.params;
             const reviews = await ReviewModel.aggregate([
-                { $match: {productId: new mongoose.Schema.Types.ObjectId(productId)}},
+                { $match: {productId: new mongooseTypes.ObjectId(productId)}},
                 {
                     $group: {
                         _id: null,

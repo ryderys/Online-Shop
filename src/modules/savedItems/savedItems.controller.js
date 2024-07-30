@@ -14,8 +14,6 @@ class SavedItemsController{
     }
 
     async saveItemForLater(req, res, next){
-        const session =await mongoose.startSession()
-        session.startTransaction()
         try {
             const {productId} = req.body;
             const userId = req.user._id;
@@ -36,7 +34,7 @@ class SavedItemsController{
             cart.items.splice(itemIndex, 1) // Remove the item from the cart
 
             // Find or create the saved items list for the user
-            let savedItems = await savedItemsModel.findOne({userId}).session(session)
+            let savedItems = await savedItemsModel.findOne({userId})
             if(!savedItems){
                 savedItems = new savedItemsModel({userId, items: []})
             }
@@ -44,10 +42,8 @@ class SavedItemsController{
             // Add the item to the saved items list
             savedItems.items.push({productId: item.productId})
 
-            await cart.save({session}) // Save the updated cart
-            await savedItems.save({session}) // Save the updated saved items list
-            await session.commitTransaction()
-            session.endSession()
+            await cart.save() // Save the updated cart
+            await savedItems.save() // Save the updated saved items list
 
             return res.status(StatusCodes.OK).json({
                 statusCode: StatusCodes.OK,
@@ -57,8 +53,6 @@ class SavedItemsController{
                 }
             })
         } catch (error) {
-            await session.abortTransaction()
-            session.endSession()
             logger.error(error)
             next(error)
         }
@@ -74,7 +68,7 @@ class SavedItemsController{
                 throw new httpError.NotFound(SavedItemMessages.ItemNotInSaved)
             }
 
-            const itemIndex = cart.items.findIndex(item => item.productId.equals(productId))
+            const itemIndex = savedItems.items.findIndex(item => item.productId.equals(productId))
             if(itemIndex === -1){
                 throw new httpError.NotFound(SavedItemMessages.ItemNotFound)
             }
@@ -151,18 +145,16 @@ class SavedItemsController{
     
 
     async moveSavedItemToCart(req, res, next){
-        const session = await mongoose.startSession()
-        session.startTransaction()
         try {
             const {productId} = req.body;
             const userId = req.user._id;
 
-            const product = await ProductModel.findById(productId).session(session)
+            const product = await ProductModel.findById(productId)
             if(!product){
                 throw new httpError.NotFound(SavedItemMessages.ProductNotFound)
             }
 
-            let savedItems = await savedItemsModel.findOne({userId}).session(session)
+            let savedItems = await savedItemsModel.findOne({userId})
             if(!savedItems){
                 throw new httpError.NotFound(SavedItemMessages.ItemNotInSaved)
             }
@@ -172,7 +164,7 @@ class SavedItemsController{
                 throw new httpError.NotFound(SavedItemMessages.ItemNotInSaved)
             }
 
-            let cart = await CartModel.findOne({userId}).session(session)
+            let cart = await CartModel.findOne({userId})
             if(!cart){
                 cart = new CartModel({userId, items: []})
             }
@@ -185,11 +177,8 @@ class SavedItemsController{
             } 
 
             savedItems.items.splice(itemIndex, 1)
-            await savedItems.save({session})
-            await cart.save({session})
-
-            await session.commitTransaction()
-            session.endSession()
+            await savedItems.save()
+            await cart.save()
 
             return res.status(StatusCodes.OK).json({
                 statusCode: StatusCodes.OK,
@@ -199,8 +188,6 @@ class SavedItemsController{
                 }
             })
         } catch (error) {
-            await session.abortTransaction()
-            session.endSession()
             logger.error(error)
             next(error)
         }

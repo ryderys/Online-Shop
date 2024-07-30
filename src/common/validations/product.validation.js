@@ -38,7 +38,8 @@ const updateProductSchema = joi.object({
             joi.array().items(joi.string())
         )).optional().error(httpError.BadRequest(ValidationMessages.InvalidType)),
     filename: joi.string().regex(/(\.png|\.jpg|\.webp|\.jpeg)$/).optional().error(httpError.BadRequest(ValidationMessages.InvalidFilename)),
-    fileUploadPath: joi.allow().optional()
+    fileUploadPath: joi.allow().optional(),
+    // images: joi.array().items(joi.string()).optional()
 })
 
 module.exports = {

@@ -16,8 +16,6 @@ class ProductController {
         autoBind(this)
     }
     async addProduct(req, res, next){
-        const session = await ProductModel.startSession()
-        session.startTransaction()
         try {
             const images = req?.files?.map(image => image?.path?.slice(7));
 
@@ -41,10 +39,9 @@ class ProductController {
                 images,
                 features: validatedFeatures,
                 category
-            }], {session})
+            }])
 
-            await session.commitTransaction()
-            session.endSession()
+        
 
             return res.status(StatusCodes.CREATED).json({
                 statusCode: StatusCodes.CREATED,
@@ -54,8 +51,6 @@ class ProductController {
             })
 
         } catch (error) {
-            await session.abortTransaction()
-            session.endSession()
             await this.deleteUploadedFiles(req?.files)
             logger.error(error)
             next(error)
@@ -65,16 +60,29 @@ class ProductController {
     async editProductById(req, res, next){
         try {
             const {id} = req.params;
+            const updates = await updateProductSchema.validateAsync(req.body);
+            if(!id || !updates){
+                throw new httpError.BadRequest("invalid request")
+            }
+            
             const product = await this.findProductById(id)
 
-            const updates = await updateProductSchema.validateAsync(req.body);
+            if(Object.keys(updates).length === 0){
+                throw new httpError.BadRequest("no updated provided")
+            }
 
             // If new images are uploaded, map their paths and delete old images
             if (req?.files?.length > 0) {
-                const newImages = req.files.map(image => image.path.slice(7));
-                await this.deleteUploadedFiles(product.images)
+                if(product.images && product.images.length > 0){
+                    await this.deleteUploadedFiles(product.images)
+                }
+                const newImages = await this.uploadFiles(req?.files);
                 updates.images = newImages;
-        }
+            } else if (!updates.images) {
+                updates.images = product.images || []
+            }  else if(typeof updates.images === "string"){
+                updates.images = [updates.images]
+            }
         
             if(updates.features){
                 const categoryFeatures = await this.getCategoryFeatures(product.category)
@@ -93,7 +101,9 @@ class ProductController {
                 }
             })
         } catch (error) {
-            await this.deleteUploadedFiles(req?.files)
+            if(req?.files?.length > 0){
+                await this.deleteUploadedFiles(req?.files)
+            }
             logger.error(error)
             next(error)
         }
@@ -151,7 +161,7 @@ class ProductController {
                 }
             },
 
-            ]).lean();
+            ]);
 
             return res.status(StatusCodes.OK).json({
                 statusCode: StatusCodes.OK,
@@ -237,7 +247,17 @@ class ProductController {
             files.forEach(file => {
                 deleteFileInPublic(file.path.slice(7))
             })
+        }else {
+            return 
         }
+    }
+    async uploadFiles(files){
+        const uploadedFiles = []
+        files.forEach((file) => {
+            const filePath = file.path.slice(7)
+            uploadedFiles.push(filePath)
+        })
+        return uploadedFiles
     }
 
 }

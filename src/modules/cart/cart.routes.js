@@ -8,7 +8,7 @@ const router = require("express").Router()
 router.post("/add", Authorization, checkPermission('cart', 'create'), cartController.addItemToCart),
 router.get("/",Authorization, checkOwnership(CartModel, 'cart', 'readOwn'), cartController.getCart),
 router.put("/update",Authorization,  checkOwnership(CartModel, 'cart', 'updateOwn'), cartController.updateItemQuantity)
-router.post("/clear-cart",Authorization,  checkOwnership(CartModel, 'cart', 'updateOwn'), cartController.clearCart)
+router.get("/clear-cart",Authorization,  checkOwnership(CartModel, 'cart', 'updateOwn'), cartController.clearCart)
 router.delete("/remove/:productId",Authorization,  checkOwnership(CartModel, 'cart', 'updateOwn'), cartController.removeItemFromCart)
 
 module.exports = {

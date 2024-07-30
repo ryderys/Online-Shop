@@ -21,6 +21,15 @@
  *                  comment:
  *                      type: string
  *                      description: comment on the product
+ *          UpdateReview:
+ *              type: object
+ *              properties:
+ *                  rating:
+ *                      type: integer
+ *                      description: Rating of a product
+ *                  comment:
+ *                      type: string
+ *                      description: comment on the product
  *          ReviewResponse:
  *              type: object
  *              properties:
@@ -122,10 +131,10 @@
  *          content:
  *              application/x-www-form-urlencoded:
  *                  schema:
- *                      $ref: '#/components/schemas/Review'
+ *                      $ref: '#/components/schemas/UpdateReview'
  *              application/json:
  *                  schema:
- *                      $ref: '#/components/schemas/Review'
+ *                      $ref: '#/components/schemas/UpdateReview'
  *      responses:
  *          200:
  *              description: success
