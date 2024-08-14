@@ -7,14 +7,12 @@ const mainRouter = require("./src/app.routes");
 const { NotFoundHandler, AllExceptionHandler } = require("./src/common/utils/error.handler");
 const cookieParser = require("cookie-parser");
 const MongoStore = require("connect-mongo");
-const session = require("express-session")
+// const session = require("express-session")
 const cors = require("cors")
 const adminRateLimiter = require("./src/common/middleware/rate-limit");
 const { default: helmet } = require("helmet");
-
 dotenv.config()
-require("./src/config/database.config")
-
+// require("./src/config/database.config")
 app.use(helmet())
 app.use(cors())
 app.use(express.json())
@@ -36,9 +34,12 @@ app.use(adminRateLimiter)
 //     }
 // }))
 app.use(mainRouter)
-
+require("./src/config/database.config")
 NotFoundHandler(app)
 AllExceptionHandler(app)
+
+
+
 app.listen(process.env.PORT, () => {
     console.log("Server is running on port 3000");
 })
