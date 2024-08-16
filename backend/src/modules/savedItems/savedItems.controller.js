@@ -18,10 +18,15 @@ class SavedItemsController{
             const {productId} = req.body;
             const userId = req.user._id;
 
+            if (!userId) {
+                throw new httpError.Unauthorized(SavedItemMessages.UserNotAuthorized)
+            }
+
              // Find the user's cart
-            const cart = await CartModel.findOne({userId});
+            let cart = await CartModel.findOne({userId});
             if(!cart){
-                throw new httpError.NotFound(SavedItemMessages.CartNotFound)
+                cart = new CartModel({userId, items: []})
+                await cart.save()
             }
 
              // Find the item in the cart
