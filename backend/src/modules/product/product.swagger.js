@@ -34,15 +34,15 @@
  *                  title:
  *                      type: string
  *                      description: the title of product
- *                      example: عنوان محصول
+ *                      example: ""
  *                  summary:
  *                      type: string
  *                      description: the summary of product
- *                      example: خلاصه ای از محصول
+ *                      example: ""
  *                  description:
  *                      type: string
  *                      description: the description of product
- *                      example: توضیحات کامل محصول
+ *                      example: ""
  *                  tags:
  *                      type: array
  *                      items:
@@ -50,11 +50,11 @@
  *                  category:
  *                      type: string
  *                      description: the category of product
- *                      example: دسته بندی محصول
+ *                      example: ""
  *                  price:
  *                      type: string
  *                      description: the price of product
- *                      example: 200000
+ *                      example: ""
  *                  images:
  *                      type: array
  *                      items:
@@ -66,15 +66,15 @@
  *                  title:
  *                      type: string
  *                      description: the title of product
- *                      example: عنوان محصول
+ *                      example: ""
  *                  summary:
  *                      type: string
  *                      description: the summary of product
- *                      example: خلاصه ای از محصول
+ *                      example: ""
  *                  description:
  *                      type: string
  *                      description: the description of product
- *                      example: توضیحات کامل محصول
+ *                      example: ""
  *                  tags:
  *                      type: array
  *                      items:
@@ -82,11 +82,11 @@
  *                  category:
  *                      type: string
  *                      description: the category of product
- *                      example: دسته بندی محصول
+ *                      example: ""
  *                  price:
  *                      type: string
  *                      description: the price of product
- *                      example: 200000
+ *                      example: ""
  *                  images:
  *                      type: array
  *                      items:
@@ -126,6 +126,7 @@
  *              name: id
  *              type: string
  *              required: true
+ *              example: ""
  *              description: id of the product
  *      requestBody:
  *          content:
@@ -152,6 +153,7 @@
  *          -   in: query
  *              name: search
  *              type: string
+ *              example: ""
  *              description: for searching in title, summary, description of the product
  *      responses:
  *          200:
@@ -169,6 +171,7 @@
  *          -   in: path
  *              name: id
  *              type: string
+ *              example: ""
  *              description: id of the product
  *      responses:
  *          200:
@@ -186,6 +189,7 @@
  *          -   in: path
  *              name: id
  *              type: string
+ *              example: ""
  *              description: id of the product
  *      responses:
  *          200:

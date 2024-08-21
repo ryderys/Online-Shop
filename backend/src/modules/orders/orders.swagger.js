@@ -16,6 +16,7 @@
  *              properties:
  *                  cardId:
  *                      type: string
+ *                      example: ""
  */                  
 
 /**
@@ -82,6 +83,7 @@
  *          -   in: path
  *              name: orderId
  *              type: string
+ *              example: ""
  *              required: true
  *      responses:
  *          200:
@@ -101,6 +103,7 @@
  *          -   in: path
  *              name: orderId
  *              type: string
+ *              example: ""
  *              required: true
  *      responses:
  *          200:
@@ -121,6 +124,7 @@
  *          -   in: path
  *              name: orderId
  *              type: string
+ *              example: ""
  *              description: id of the order
  *              required: true
  *      responses:

@@ -16,6 +16,7 @@
  *              properties:
  *                  productId:
  *                      type: string
+ *                      example: ""
  * 
  */                 
 

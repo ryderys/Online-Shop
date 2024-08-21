@@ -17,8 +17,10 @@
  *              properties:
  *                  productId:
  *                      type: string
+ *                      example: ""
  *                  quantity:
  *                      type: integer
+ *                      example: ""
  * 
  */                 
 
@@ -114,6 +116,7 @@
  *              name: productId
  *              required: true
  *              type: string
+ *              example: ""
  *              description: The ID of the item to remove
  *      responses:
  *          200:

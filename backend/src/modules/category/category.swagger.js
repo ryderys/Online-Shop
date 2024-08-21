@@ -17,12 +17,16 @@
  *              properties:
  *                  title:
  *                      type: string
+ *                      example: ""
  *                  slug:
  *                      type: string
+ *                      example: ""
  *                  icon:
  *                      type: string
+ *                      example: ""
  *                  parent:
  *                      type: string
+ *                      example: ""
  *                  
  */
 
@@ -68,6 +72,7 @@
  *      parameters:
  *          -   in: path
  *              name: id
+ *              example: ""
  *      responses:
  *          200:
  *              description: success
