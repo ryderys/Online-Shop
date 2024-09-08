@@ -3,6 +3,5 @@ node_modules
 public/upload
 uploads
 eslint.config.mjs
-constants
 *.log
 logs
