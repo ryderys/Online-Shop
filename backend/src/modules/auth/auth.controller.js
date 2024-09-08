@@ -171,7 +171,7 @@ class UserAuthController {
   async logout(req, res, next) {
     try {
       const userId = req.user._id;
-      if (!user) throw new httpError.BadRequest(AuthMessages.LogIn);
+      if (!userId) throw new httpError.BadRequest(AuthMessages.LogIn);
       await UserModel.findByIdAndUpdate(userId, { refreshToken: null });
       return res
         .clearCookie(CookieNames.AccessToken)
