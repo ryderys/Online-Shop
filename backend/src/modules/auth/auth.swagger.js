@@ -89,7 +89,7 @@
 /**
  * @swagger
  * /auth/logout:
- *  get:
+ *  post:
  *      summary: logout user
  *      tags:
  *          -   Authentication

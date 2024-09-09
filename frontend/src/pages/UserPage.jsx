@@ -1,11 +1,11 @@
 import React from 'react';
 
-const CheckOtp = () => {
+const UserPage = () => {
     return (
         <div>
-            CheckOtp
+            UserPage
         </div>
     );
 };
 
-export default CheckOtp;
+export default UserPage;
