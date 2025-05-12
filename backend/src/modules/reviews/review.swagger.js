@@ -18,18 +18,22 @@
  *                  rating:
  *                      type: integer
  *                      description: Rating of a product
+ *                      example: ""
  *                  comment:
  *                      type: string
  *                      description: comment on the product
+ *                      example: ""
  *          UpdateReview:
  *              type: object
  *              properties:
  *                  rating:
  *                      type: integer
  *                      description: Rating of a product
+ *                      example: ""
  *                  comment:
  *                      type: string
  *                      description: comment on the product
+ *                      example: ""
  *          ReviewResponse:
  *              type: object
  *              properties:
@@ -65,6 +69,7 @@
  *              name: productId
  *              type: string
  *              required: true
+ *              example: ""
  *              description: the ID of the product
  *      requestBody:
  *          content:
@@ -94,14 +99,17 @@
  *          -   in: path
  *              name: productId
  *              type: string
+ *              example: ""
  *              description: the id of a product
  *          -   in: query
  *              name: page
  *              type: integer
+ *              example: ""
  *              description: the page number
  *          -   in: query
  *              name: limit
  *              type: integer
+ *              example: ""
  *              description: the number of items per page
  *      responses:
  *          200:
@@ -126,6 +134,7 @@
  *          -   in: path
  *              name: reviewId
  *              type: string
+ *              example: ""
  *              description: the id of the review
  *      requestBody:
  *          content:
@@ -158,6 +167,7 @@
  *          -   in: path
  *              name: reviewId
  *              type: string
+ *              example: ""
  *              description: the id of the review
  *      responses:
  *          200:
@@ -182,6 +192,7 @@
  *          -   in: path
  *              name: productId
  *              type: string
+ *              example: ""
  *              description: the id of the product
  *      responses:
  *          200:

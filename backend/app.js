@@ -14,7 +14,10 @@ const { default: helmet } = require("helmet");
 dotenv.config()
 // require("./src/config/database.config")
 app.use(helmet())
-app.use(cors())
+app.use(cors({
+    origin: 'http://localhost:5173',
+    credentials: true
+}))
 app.use(express.json())
 app.use(express.urlencoded({extended: true}))
 app.use(cookieParser(process.env.COOKIE_SECRET_KEY))
@@ -40,6 +43,6 @@ AllExceptionHandler(app)
 
 
 
-app.listen(process.env.PORT, () => {
+app.listen(process.env.PORT || 3000, () => {
     console.log("Server is running on port 3000");
 })

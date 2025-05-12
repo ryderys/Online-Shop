@@ -19,12 +19,16 @@
  *              properties:
  *                  title:
  *                      type: string
+ *                      example: ""
  *                  key:
  *                      type: string
+ *                      example: ""
  *                  category:
  *                      type: string
+ *                      example: ""
  *                  guid:
  *                      type: string
+ *                      example: ""
  *                  type:
  *                      type: string
  *                      enum:
@@ -41,12 +45,16 @@
  *              properties:
  *                  title:
  *                      type: string
+ *                      example: ""
  *                  key:
  *                      type: string
+ *                      example: ""
  *                  category:
  *                      type: string
+ *                      example: ""
  *                  guid:
  *                      type: string
+ *                      example: ""
  *                  type:
  *                      type: string
  *                      enum:
@@ -91,6 +99,7 @@
  *          -   in: path
  *              name: id
  *              type: string
+ *              example: ""
  *              required: true
  *      requestBody:
  *          content:
@@ -128,6 +137,7 @@
  *          -   in: path
  *              name: categoryId
  *              type: string
+ *              example: ""
  *      responses:
  *          200:
  *              description: success
@@ -144,6 +154,7 @@
  *          -   in: path
  *              name: slug
  *              type: string
+ *              example: ""
  *      responses:
  *          200:
  *              description: success
@@ -161,6 +172,7 @@
  *          -   in: path
  *              name: id
  *              type: string
+ *              example: ""
  *      responses:
  *          200:
  *              description: success

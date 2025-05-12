@@ -14,12 +14,15 @@
  *              properties:
  *                  fullName:
  *                      type: string
+ *                      example: ""
  *                      description: the fullname of user
  *                  username:
  *                      type: string
+ *                      example: ""
  *                      description: the username of user
  *                  email:
  *                      type: string
+ *                      example: ""
  *                      description: the email of user
 */                  
 

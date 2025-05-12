@@ -17,6 +17,7 @@
  *              properties:
  *                  mobile:
  *                      type: string
+ *                      example: ""
  *          CheckOTP:
  *              type: object
  *              required:
@@ -25,8 +26,10 @@
  *              properties:
  *                  mobile:
  *                      type: string
+ *                      example: ""
  *                  code:
  *                      type: string
+ *                      example: ""
  */
 
 /**
@@ -86,7 +89,7 @@
 /**
  * @swagger
  * /auth/logout:
- *  get:
+ *  post:
  *      summary: logout user
  *      tags:
  *          -   Authentication
