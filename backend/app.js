@@ -6,13 +6,20 @@ const path = require("path");
 const mainRouter = require("./src/app.routes");
 const { NotFoundHandler, AllExceptionHandler } = require("./src/common/utils/error.handler");
 const cookieParser = require("cookie-parser");
-const MongoStore = require("connect-mongo");
 // const session = require("express-session")
 const cors = require("cors")
 const adminRateLimiter = require("./src/common/middleware/rate-limit");
 const { default: helmet } = require("helmet");
+const connectDB = require("./src/config/database.config");
+
 dotenv.config()
-// require("./src/config/database.config")
+
+// Connect to MongoDB
+connectDB().catch(err => {
+    console.error('Failed to connect to MongoDB:', err);
+    process.exit(1);
+});
+
 app.use(helmet())
 app.use(cors({
     origin: 'http://localhost:5173',
@@ -37,12 +44,13 @@ app.use(adminRateLimiter)
 //     }
 // }))
 app.use(mainRouter)
-require("./src/config/database.config")
+
 NotFoundHandler(app)
 AllExceptionHandler(app)
 
+const PORT = process.env.PORT || 3000;
 
-
-app.listen(process.env.PORT || 3000, () => {
-    console.log("Server is running on port 3000");
-})
+app.listen(PORT, () => {
+    console.log(`Server is running on http://localhost:${PORT}`);
+    console.log(`Swagger documentation available at http://localhost:${PORT}/swagger`);
+});
